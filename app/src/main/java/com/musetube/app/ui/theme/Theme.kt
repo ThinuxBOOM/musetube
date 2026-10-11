@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun SpotifyTheme(
+fun MuseTubeTheme(
     useDynamicColor: Boolean = false,
     amoled: Boolean = false,
     seedColor: Color? = null,

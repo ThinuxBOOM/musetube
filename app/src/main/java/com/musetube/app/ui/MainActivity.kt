@@ -115,7 +115,8 @@ import com.musetube.app.profile.ProfileManager
 import com.musetube.app.proxy.LocalProxyManager
 import com.musetube.app.service.MediaNotificationService
 import com.musetube.app.ui.components.SettingsDrawer
-import com.musetube.app.ui.theme.SpotifyTheme
+import com.musetube.app.ui.theme.MuseTubeTheme
+import com.musetube.app.util.Constants
 import com.musetube.app.util.UpdateChecker
 import com.musetube.app.webview.MusicWebChromeClient
 import com.musetube.app.webview.MusicWebViewClient
@@ -123,7 +124,7 @@ import com.musetube.app.webview.helpers.DevLogPrelude
 import com.musetube.app.webview.helpers.LyricsTheme
 import com.musetube.app.webview.helpers.buildAmoledJs
 import com.musetube.app.webview.helpers.buildCustomCssJs
-import com.musetube.app.webview.injections.LogoutCheck
+import com.musetube.app.webview.injections.YtmLoginDetection
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
@@ -263,7 +264,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            SpotifyTheme(useDynamicColor = materialYou, amoled = amoled, seedColor = seedColor) {
+            MuseTubeTheme(useDynamicColor = materialYou, amoled = amoled, seedColor = seedColor) {
                 SettingsDrawer(
                     visible = settingsDrawerOpen,
                     onClose = { settingsDrawerOpen = false },
@@ -476,7 +477,7 @@ class MainActivity : ComponentActivity() {
 
                                         webViewClient = MusicWebViewClient(
                                             onLoginRequired = {
-                                                loadUrl("https://accounts.spotify.com/login")
+                                                loadUrl(Constants.GOOGLE_LOGIN)
                                             },
                                             onRenderProcessGone = {
                                                 runOnUiThread {
@@ -504,9 +505,9 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         if (loggedIn) {
-                                            loadUrl("https://open.spotify.com/")
+                                            loadUrl(Constants.YTM_HOME)
                                         } else {
-                                            loadUrl("https://accounts.spotify.com/login")
+                                            loadUrl(Constants.GOOGLE_LOGIN)
                                         }
                                     }
                                 },
@@ -1393,10 +1394,10 @@ class MainActivity : ComponentActivity() {
             }
             view.evaluateJavascript(js, null)
 
-            view.evaluateJavascript(LogoutCheck.CONTENT) { result ->
+            view.evaluateJavascript(YtmLoginDetection.CONTENT) { result ->
                 if (result == "\"out\"") {
                     prefs.edit().putBoolean("LoggedIn", false).apply()
-                    view.loadUrl("https://accounts.spotify.com/login")
+                    view.loadUrl(Constants.GOOGLE_LOGIN)
                 }
             }
         }
@@ -1407,7 +1408,7 @@ class MainActivity : ComponentActivity() {
         val loggedIn = getSharedPreferences("musetube_prefs", MODE_PRIVATE)
             .getBoolean("LoggedIn", false)
         if (!loggedIn) {
-            webView?.loadUrl("https://accounts.spotify.com/login")
+            webView?.loadUrl(Constants.GOOGLE_LOGIN)
         }
     }
 

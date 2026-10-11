@@ -11,6 +11,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.musetube.app.webview.helpers.*
 import com.musetube.app.webview.injections.*
+import com.musetube.app.util.Constants
 import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -44,15 +45,11 @@ class MusicWebViewClient(
             return
         }
 
-        if (url.endsWith("/login")) {
-            onPageFinishedClean(view, ClassicLoginButton.CONTENT)
-        }
-
         val loggedIn = view.context.getSharedPreferences("musetube_prefs", 0)
             .getBoolean("LoggedIn", false)
 
         if (!loggedIn) {
-            onPageFinishedClean(view, LoginDetection.CONTENT)
+            onPageFinishedClean(view, YtmLoginDetection.CONTENT)
             return
         }
 
@@ -60,11 +57,11 @@ class MusicWebViewClient(
             injectPlayerControl(view)
         }, 500)
 
-        view.evaluateJavascript(LogoutCheck.CONTENT) { result ->
+        view.evaluateJavascript(YtmLoginDetection.CONTENT) { result ->
             if (result == "\"out\"") {
                 view.context.getSharedPreferences("musetube_prefs", 0)
                     .edit().putBoolean("LoggedIn", false).apply()
-                view.loadUrl("https://accounts.spotify.com/login")
+                view.loadUrl(Constants.GOOGLE_LOGIN)
             }
         }
     }
@@ -180,7 +177,7 @@ class MusicWebViewClient(
                         }
                     }
                     if (isGoogle) {
-                        conn.setRequestProperty("User-Agent", DESKTOP_UA)
+                        conn.setRequestProperty("User-Agent", Constants.DESKTOP_UA)
                         val cookie = CookieManager.getInstance().getCookie(url)
                         if (!cookie.isNullOrEmpty()) conn.setRequestProperty("Cookie", cookie)
                     }
@@ -407,8 +404,6 @@ class MusicWebViewClient(
 
     companion object {
         private const val TAG = "MusicWebViewClient"
-        private const val DESKTOP_UA =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 
         private val SW_UNREGISTER_JS = """
             try {

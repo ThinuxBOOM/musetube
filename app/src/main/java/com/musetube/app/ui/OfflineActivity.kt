@@ -16,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import com.musetube.app.profile.ProfileManager
 import com.musetube.app.ui.screens.OfflineScreen
-import com.musetube.app.ui.theme.SpotifyTheme
+import com.musetube.app.ui.theme.MuseTubeTheme
 
 class OfflineActivity : ComponentActivity() {
 
@@ -46,7 +46,7 @@ class OfflineActivity : ComponentActivity() {
         applyKeepScreenOn()
 
         setContent {
-            SpotifyTheme(
+            MuseTubeTheme(
                 useDynamicColor = materialYouState.value,
                 amoled = amoledState.value,
                 seedColor = paletteSeedState.value?.let { hex ->

@@ -20,13 +20,11 @@ object ProfileManager {
     private const val KEY_PROFILES = "profiles"
 
     private val COOKIE_DOMAINS = listOf(
-        "https://open.spotify.com",
-        "https://accounts.spotify.com",
-        "https://api-partner.spotify.com",
-        "https://gew4-spclient.spotify.com",
-        "https://spclient.wg.spotify.com",
-        "https://api.spotify.com",
-        "https://www.spotify.com"
+        "https://music.youtube.com",
+        "https://accounts.google.com",
+        "https://accounts.youtube.com",
+        "https://www.youtube.com",
+        "https://youtube.com"
     )
 
     private fun prefs(context: Context): SharedPreferences {
@@ -104,15 +102,15 @@ object ProfileManager {
 
     fun captureSession(context: Context): String? {
         val map = JSONObject()
-        var hasSpDc = false
+        var hasSapisid = false
         for (domain in COOKIE_DOMAINS) {
             val cookies = CookieManager.getInstance().getCookie(domain)
             if (!cookies.isNullOrBlank()) {
                 map.put(domain, cookies)
-                if (cookies.contains("sp_dc=")) hasSpDc = true
+                if (cookies.contains("SAPISID=")) hasSapisid = true
             }
         }
-        if (!hasSpDc) return null
+        if (!hasSapisid) return null
         return map.toString()
     }
 

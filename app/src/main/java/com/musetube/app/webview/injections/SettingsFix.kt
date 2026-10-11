@@ -21,9 +21,13 @@ object SettingsFix {
                 };
             } catch(e) {}
 
-            function isSpotifyUrl(url) {
-                return url.indexOf('https://open.spotify.com/') === 0 ||
-                       url.indexOf('https://accounts.spotify.com/') === 0;
+            function isMusicUrl(url) {
+                return url.indexOf('https://music.youtube.com/') === 0 ||
+                       url.indexOf('https://accounts.google.com/') === 0 ||
+                       url.indexOf('https://accounts.youtube.com/') === 0 ||
+                       url.indexOf('https://youtube.com/') === 0 ||
+                       url.indexOf('https://www.youtube.com/') === 0 ||
+                       url.indexOf('https://m.youtube.com/') === 0;
             }
 
             function isOAuthUrl(url) {
@@ -34,6 +38,9 @@ object SettingsFix {
                 return host === 'google.com' ||
                        host.indexOf('.google.com') !== -1 ||
                        host.indexOf('.google.') !== -1 ||
+                       host === 'youtube.com' ||
+                       host.indexOf('.youtube.com') !== -1 ||
+                       host === 'accounts.youtube.com' ||
                        host === 'facebook.com' ||
                        host.indexOf('.facebook.com') !== -1 ||
                        host === 'appleid.apple.com' ||
@@ -41,7 +48,7 @@ object SettingsFix {
             }
 
             function isAllowed(url) {
-                return isSpotifyUrl(url) || isOAuthUrl(url);
+                return isMusicUrl(url) || isOAuthUrl(url);
             }
 
             function hardBlock(el) {

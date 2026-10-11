@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musetube.app.BuildConfig
 import com.musetube.app.proxy.LocalProxyManager
-import com.musetube.app.ui.theme.SpotifyTheme
+import com.musetube.app.ui.theme.MuseTubeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -121,7 +121,7 @@ class SplashActivity : ComponentActivity() {
                 }
             }
 
-            SpotifyTheme {
+            MuseTubeTheme {
                 Box {
                     when {
                         checking -> LoadingScreen()

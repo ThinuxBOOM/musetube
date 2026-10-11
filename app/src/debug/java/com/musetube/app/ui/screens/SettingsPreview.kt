@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import com.musetube.app.ui.theme.SpotifyTheme
+import com.musetube.app.ui.theme.MuseTubeTheme
 
 /** Dev-only preview (debug source set so release never links ui.tooling). */
 @Preview(showBackground = true)
@@ -15,7 +15,7 @@ import com.musetube.app.ui.theme.SpotifyTheme
 fun SettingsContentPreview() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("preview_prefs", Context.MODE_PRIVATE) }
-    SpotifyTheme {
+    MuseTubeTheme {
         SettingsContent(
             modifier = Modifier.fillMaxSize(),
             prefs = prefs,

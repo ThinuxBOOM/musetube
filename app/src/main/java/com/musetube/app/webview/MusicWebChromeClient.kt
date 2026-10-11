@@ -11,6 +11,7 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.musetube.app.util.Constants
 import com.musetube.app.webview.injections.BrowserSpoof
 import com.musetube.app.webview.injections.FbGdprBypass
 import com.musetube.app.webview.injections.GoogleSpoof
@@ -25,10 +26,6 @@ class MusicWebChromeClient(
 
     private var childWebView: WebView? = null
 
-    companion object {
-        private const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
-    }
-
     override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
         onShowCustomView?.invoke(view, callback)
     }
@@ -37,9 +34,13 @@ class MusicWebChromeClient(
         onHideCustomView?.invoke()
     }
 
-    private fun isSpotifyUrl(url: String): Boolean {
-        return url.startsWith("https://open.spotify.com/") ||
-                url.startsWith("https://accounts.spotify.com/")
+    private fun isMusicUrl(url: String): Boolean {
+        return url.startsWith("https://music.youtube.com/") ||
+                url.startsWith("https://accounts.google.com/") ||
+                url.startsWith("https://accounts.youtube.com/") ||
+                url.startsWith("https://youtube.com/") ||
+                url.startsWith("https://www.youtube.com/") ||
+                url.startsWith("https://m.youtube.com/")
     }
 
     private fun isOAuthUrl(url: String): Boolean {
@@ -47,6 +48,9 @@ class MusicWebChromeClient(
         return host == "google.com" ||
                 host.endsWith(".google.com") ||
                 host.indexOf(".google.") != -1 ||
+                host == "youtube.com" ||
+                host.endsWith(".youtube.com") ||
+                host == "accounts.youtube.com" ||
                 host == "facebook.com" ||
                 host.endsWith(".facebook.com") ||
                 host == "appleid.apple.com" ||
@@ -72,14 +76,14 @@ class MusicWebChromeClient(
         val newWebView = WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
-            settings.userAgentString = DESKTOP_UA
+            settings.userAgentString = Constants.DESKTOP_UA
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     super.onPageStarted(view, url, favicon)
                     if (url != null) {
                         if (isGoogleUrl(url)) {
                             view?.evaluateJavascript(GoogleSpoof.CONTENT, null)
-                        } else if (!isSpotifyUrl(url)) {
+                        } else if (!isMusicUrl(url)) {
                             view?.evaluateJavascript(BrowserSpoof.CONTENT, null)
                         }
                     }
@@ -96,7 +100,7 @@ class MusicWebChromeClient(
                 @Suppress("DEPRECATION")
                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                     val targetUrl = url ?: return false
-                    val allowed = isSpotifyUrl(targetUrl) || isOAuthUrl(targetUrl)
+                    val allowed = isMusicUrl(targetUrl) || isOAuthUrl(targetUrl)
                     if (!allowed) {
                         try { view?.destroy() } catch (_: Exception) {}
                         return true
@@ -138,7 +142,7 @@ class MusicWebChromeClient(
 
     @Deprecated("Deprecated in Java")
     override fun onConsoleMessage(message: String?, lineNumber: Int, sourceId: String?) {
-        android.util.Log.d("SpotifyJS", "$message [$sourceId:$lineNumber]")
+        android.util.Log.d("MuseTubeJS", "$message [$sourceId:$lineNumber]")
     }
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
