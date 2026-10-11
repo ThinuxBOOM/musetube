@@ -9,7 +9,7 @@ class UpdateChecker(private val context: Context) {
 
     companion object {
         private const val OWNER = "ThinuxBOOM"
-        private const val REPO = "MuseTube"
+        private const val REPO = "musetube"
         private const val PREFS_NAME = "musetube_prefs"
         private const val KEY_LAST_CHECK = "LastUpdateCheck"
         private const val CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L

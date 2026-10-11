@@ -196,10 +196,7 @@ class MusicWebViewClient(
                         if (sawSetCookie) CookieManager.getInstance().flush()
                     }
                     val contentType = conn.contentType
-                    if (contentType == "audio/mpeg" &&
-                        !url.contains("podz-content") && !url.contains("gew4-spclient") &&
-                        isAdAudioUrl(url)
-                    ) {
+                    if (contentType == "audio/mpeg" && isAdAudioUrl(url)) {
                         view.post { view.evaluateJavascript("AndBridge.deferMessage('adblock')", null) }
                         val silent = view.context.assets?.open("silent.mp3") ?: return null
                         return WebResourceResponse("audio/mpeg", null, silent)

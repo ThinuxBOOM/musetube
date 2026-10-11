@@ -1532,7 +1532,7 @@ fun CustomCssDialog(
                         .height(180.dp),
                     placeholder = {
                         Text(
-                            "/* Write your CSS overrides here (use !important if needed) */\naside[data-testid=now-playing-bar] { display: none !important; }",
+                            "/* Write your CSS overrides here (use !important if needed) */\nytmusic-player-bar { background: #000 !important; }",
                             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
                         )
                     },

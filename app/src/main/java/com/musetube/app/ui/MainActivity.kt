@@ -1375,13 +1375,12 @@ class MainActivity : ComponentActivity() {
             view.evaluateJavascript("""
                 try {
                     window.__mtbBg = false;
-                    if(window.__mtbWasPfint) { window.__mtbWasPfint = false; firstFuck(); }
+                    if(window.__mtbWasPfint) { window.__mtbWasPfint = false; firstRun(); }
                     if(window.__mtbWasAfint) { window.__mtbWasAfint = false; addAutoFeatures(); }
                     if(window.__mtbWasCssint) { window.__mtbWasCssint = false; addCSSJSHack(); }
                     if(window.autoPlayMode === 'onetime') {
                         window.__mtbApDone = false;
                         window.__mtbApActive = false;
-                        if(typeof splAutoPlay === 'function') splAutoPlay();
                     }
                 } catch(e) {}
             """.trimIndent(), null)

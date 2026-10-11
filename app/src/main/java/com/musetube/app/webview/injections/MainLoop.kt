@@ -15,7 +15,7 @@ package com.musetube.app.webview.injections
 
 object MainLoop {
     const val CONTENT = """
-            window.firstFuck = function(){
+            window.firstRun = function(){
                 if(pfint) clearInterval(pfint);
                 pfint = setInterval(function(){
                     var v = document.querySelector('ytmusic-player video');
@@ -26,9 +26,9 @@ object MainLoop {
                     }
 
                     if(typeof npBtn=='undefined') {
-                        var anchorBtn = document.querySelector('ytmusic-player-bar .toggle-menu-button:not(.fuckd)');
+                        var anchorBtn = document.querySelector('ytmusic-player-bar .toggle-menu-button:not(.mtbhooked)');
                         if(anchorBtn) {
-                            anchorBtn.classList.add('fuckd');
+                            anchorBtn.classList.add('mtbhooked');
                             npBtn = document.createElement('button');
                             npBtn.className = 'npbtn';
                             npBtn.onclick = clickNP;
@@ -43,16 +43,16 @@ object MainLoop {
                         }
                     }
 
-                    var pb = document.querySelector('ytmusic-player-bar #play-pause-button button:not(.fuckd)') ||
-                             document.querySelector('ytmusic-player-bar #play-pause-button:not(.fuckd)');
+                    var pb = document.querySelector('ytmusic-player-bar #play-pause-button button:not(.mtbhooked)') ||
+                             document.querySelector('ytmusic-player-bar #play-pause-button:not(.mtbhooked)');
                     if(pb) wirePlayBtn(pb);
                 },5000);
 
                 var tries = 0;
                 var bootIv = setInterval(function(){
                     tries++;
-                    var pb = document.querySelector('ytmusic-player-bar #play-pause-button button:not(.fuckd)') ||
-                             document.querySelector('ytmusic-player-bar #play-pause-button:not(.fuckd)');
+                    var pb = document.querySelector('ytmusic-player-bar #play-pause-button button:not(.mtbhooked)') ||
+                             document.querySelector('ytmusic-player-bar #play-pause-button:not(.mtbhooked)');
                     if(pb){ clearInterval(bootIv); wirePlayBtn(pb); }
                     else if(tries > 100){ clearInterval(bootIv); }
                 },300);
@@ -60,7 +60,7 @@ object MainLoop {
 
             window.wirePlayBtn = function(pb){
                 window.pBtn = pb;
-                pb.classList.add('fuckd');
+                pb.classList.add('mtbhooked');
 
                 pBtn.addEventListener('click', function(e){
                     if(pBtn.getAttribute('aria-label')!=='Play') {
@@ -107,6 +107,6 @@ object MainLoop {
                 }
                 AndBridge.playLoaded();
             };
-            firstFuck();
+            firstRun();
     """
 }

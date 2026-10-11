@@ -6,10 +6,8 @@ object PlayerCore {
             window.__mtbUnlocked=false;
             window.__mtbApActive=false;
             window.__mtbApDone=false;
-            var featVer='web-player_'+new Date().toISOString().split('T')[0]+'_'+Date.now()+'_'+Math.floor(Math.random()*0xFFFFFFF).toString(16).padStart(7,'0');
             var lastState=null,lastPos=null,playing=false;
             var pfint=null,afint=null,cssint=null,aaint=null;
-            window.opHash=function(name,fb){var m=window.splOpHashes||{};return m[name]||fb;};
             window.mtbViewH=function(){
                 try{if(window.visualViewport&&window.visualViewport.height)return window.visualViewport.height;}catch(e){}
                 return document.documentElement.clientHeight||window.innerHeight||0;
