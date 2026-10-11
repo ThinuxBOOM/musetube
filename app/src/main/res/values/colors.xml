@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MuseTube Brand Colors -->
+    <color name="musetube_red">#FFFF0000</color>
+    <color name="musetube_black">#FF000000</color>
+    <color name="musetube_white">#FFFFFFFF</color>
+    <color name="musetube_dark_gray">#FF121212</color>
+    <color name="musetube_medium_gray">#FF535353</color>
+    <color name="musetube_light_gray">#FFB3B3B3</color>
+
+    <!-- Material 3 Primary Colors -->
+    <color name="primary">#FFE0E0E0</color>
+    <color name="on_primary">#FF121212</color>
+    <color name="primary_container">#FF2E2E2E</color>
+    <color name="on_primary_container">#FFF5F5F5</color>
+
+    <!-- Material 3 Surface Colors -->
+    <color name="surface">@color/musetube_black</color>
+    <color name="on_surface">@color/musetube_white</color>
+    <color name="surface_variant">@color/musetube_black</color>
+    <color name="on_surface_variant">@color/musetube_light_gray</color>
+
+    <!-- Material 3 Background -->
+    <color name="background">@color/musetube_black</color>
+    <color name="on_background">@color/musetube_white</color>
+
+    <!-- Material 3 Status Bar -->
+    <color name="status_bar">#FF000000</color>
+</resources>
