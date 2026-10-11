@@ -3,59 +3,39 @@ package com.musetube.app.webview.helpers
 private val ANALYTICS_DOMAINS = listOf(
     "doubleclick.net",
     "googlesyndication.com",
+    "pagead",
+    "/ptracking",
+    "youtube.com/api/stats/ads",
     "fastly-insights.com",
     "sentry.io",
-    "t.6sc.co",
-    "tracker.samplicio.us",
     "adsrvr.org",
-    "aet.spotify.com",
-    "retargeting-pixels",
-    "spotify.com/gabo-receiver-service/public/v3/events"
-    // workbox-window REMOVED: Spotify now loads it as a lazy webpack chunk
-    // (chunk 6201) during web-player init. Blocking it caused ChunkLoadError
-    // -> React error boundary -> "Something wrong with page". The service
-    // worker itself is already neutralized by WorkerNeutralize injecting
-    // before Spotify's code runs, so this block was redundant anyway.
+    "tracker.samplicio.us"
+    // YTM lesson (same as the old Spotify workbox one): YTM boots from lazy
+    // webpack/polymer chunks. Never add googlevideo.com, youtube.com watch/
+    // browse/player, or gstatic here — blocking those whitescreens the app.
 )
 
 private val AD_AUDIO_DOMAINS = listOf(
-    "akamaized.net/audio/",
-    "scdn.co/audio/",
-    "scdn.co/mp3-ad/",
-    "spotifycdn.com/audio/",
-    "amillionads.com",
-    "2mdn.net",
-    "adxcel.com",
-    "adstudio-assets.scdn.co"
+    "ctier=",
+    "adformat="
 )
 
-private val POWER_HOG_HOSTS = listOf(
-    "canvasset.scdn.co",
-    "video-ak.spotify.com",
-    "video-provider.net"
+private val POWER_HOG_HOSTS = listOf<String>(
+    // YTM canvas/video-background parking is handled behaviorally by
+    // VideoPark/PowerSave (Phase 4/6), not by host blocking.
 )
 
 private val VIDEO_EXTENSIONS = listOf(".mp4", ".m4s", ".m3u8", ".webm")
 
 private val AD_CDN_PATTERNS = listOf(
-    "scdn.co/mp3-ad/",
-    "mp3ad.scdn.co",
-    "amillionads.com",
-    "2mdn.net",
-    "adxcel.com",
-    "adstudio-assets.scdn.co",
-    "audio-ads.spotify.com",
-    "ads-akp.spotify.com",
-    "ads-fa.spotify.com",
-    "adeventtracker.spotify.com",
-    "pixel-static.spotify.com",
-    "pixel.spotify.com",
-    "adstudio.spotify.com",
-    "ads.spotify.com",
-    // adblockify-equivalent ad-only paths (never music CDN - do NOT add
-    // gew4-spclient / audio-fa / podz-content / generic scdn audio here).
-    "/vast/",
-    "/ad-logic/"
+    "pagead",
+    "/ptracking",
+    "youtube.com/api/stats/ads",
+    "doubleclick.net",
+    "googlesyndication.com",
+    // ad-only paths (never music CDN - do NOT add googlevideo videoplayback
+    // or manifest hosts here; music and ads share that CDN).
+    "/vast/"
 )
 
 fun isAnalyticsDomain(url: String): Boolean =

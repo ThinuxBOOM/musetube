@@ -1,16 +1,16 @@
 package com.musetube.app.webview.helpers
 
 /**
- * Bounded, thread-safe store of ad audio content IDs harvested by the
- * page-level state hook (AdStateHook).
+ * Bounded, thread-safe store of ad content IDs harvested from page payloads
+ * (published via MusicBridge.recAdContentIds).
  *
- * Ported from the Blockify (blockify-desktop) architecture: JavaScript inside
- * the Spotify web player inspects player-state payloads delivered via fetch
- * and WebSocket, extracts the audio file IDs belonging to tracks flagged as
- * ads, and registers them natively so shouldInterceptRequest can silence
- * those exact media requests - closing the gap left by static host matching
+ * JavaScript inside the web player inspects player-state payloads delivered
+ * via fetch, extracts the media IDs belonging to segments flagged as ads,
+ * and registers them natively so shouldInterceptRequest can silence those
+ * exact media requests - closing the gap left by static host matching
  * (matchAdCdn), which cannot distinguish ad audio served from the same
- * generic CDN as music (opaque file IDs, no URL marker).
+ * generic CDN as music (opaque IDs, no URL marker). YTM shares its
+ * googlevideo CDN between music and ads, so this exact-match layer matters.
  *
  * Design mirrors Blockify's blocker.setAdContentIds():
  *  - IDs validated with ^[a-zA-Z0-9_-]{8,128}$ (hand-rolled, allocation-free)

@@ -12,8 +12,9 @@ import org.junit.Test
  * Functional tests for the adblock matching core (pure JVM logic, no WebView).
  *
  * These lock in the behaviors the native + JS layers depend on:
- * - analytics endpoints are stubbed, music/player traffic is not
- * - ad audio hosts are probed, music CDNs are never silent-swapped
+ * - analytics/ad endpoints are stubbed, music/player traffic is not
+ * - ad markers in googlevideo URLs are probed, music streams are never
+ *   silent-swapped (music and ads share the googlevideo CDN)
  * - harvested ad content IDs match exactly and stay bounded
  */
 class AdBlockerTest {
@@ -31,58 +32,56 @@ class AdBlockerTest {
         assertTrue(isAnalyticsDomain("https://googleads.g.doubleclick.net/pagead/id"))
         assertTrue(isAnalyticsDomain("https://pagead2.googlesyndication.com/getconfig"))
         assertTrue(isAnalyticsDomain("https://sentry.io/api/123/envelope/"))
-        assertTrue(isAnalyticsDomain("https://aet.spotify.com/v1/events"))
-        assertTrue(isAnalyticsDomain("https://open.spotify.com/gabo-receiver-service/public/v3/events"))
+        assertTrue(isAnalyticsDomain("https://www.youtube.com/api/stats/ads?ad_v=abc"))
+        assertTrue(isAnalyticsDomain("https://www.youtube.com/ptracking?video_id=abc"))
         assertTrue(isAnalyticsDomain("https://tracker.samplicio.us/track"))
     }
 
     @Test
     fun playerAndMusicTraffic_areNotAnalytics() {
-        assertFalse(isAnalyticsDomain("https://open.spotify.com/"))
-        assertFalse(isAnalyticsDomain("https://gew4-spclient.spotify.com/audio/abc123"))
-        assertFalse(isAnalyticsDomain("https://audio-fa.scdn.co/audio/abc123"))
+        assertFalse(isAnalyticsDomain("https://music.youtube.com/"))
+        assertFalse(isAnalyticsDomain("https://music.youtube.com/watch?v=dQw4w9WgXcQ"))
+        assertFalse(isAnalyticsDomain("https://rr1---sn-abc.googlevideo.com/videoplayback?itag=140"))
+        assertFalse(isAnalyticsDomain("https://manifest.googlevideo.com/api/manifest/hls_variant/itag/140"))
     }
 
     @Test
-    fun workboxChunk_isNotBlocked_regressionChunkLoadError() {
-        // Blocking Spotify's lazy workbox chunk crashed init with
-        // ChunkLoadError -> "Something wrong with page". Must stay allowed.
-        assertFalse(isAnalyticsDomain("https://open.spotify.com/chunk.6201.workbox-window.js"))
+    fun ytmChunks_areNotBlocked_regressionChunkLoadError() {
+        // Same lesson as the old Spotify workbox regression: blocking the
+        // player's lazy chunks whitescreens the app. Must stay allowed.
+        assertFalse(isAnalyticsDomain("https://music.youtube.com/_polymer_/chunk.js"))
+        assertFalse(isAnalyticsDomain("https://www.youtube.com/s/player/abcd/player-plasma-ias-phone-en_GB.vflset/base.js"))
     }
 
-    // --- Layer B2: ad-audio host matching (non-proxy probe gate) ---------
+    // --- Layer B2: ad-marker matching (non-proxy probe gate) --------------
 
     @Test
     fun adAudioHosts_areDetected() {
-        assertTrue(isAdAudioUrl("https://audio-akp-quiet.akamaized.net/audio/ad123"))
-        assertTrue(isAdAudioUrl("https://audio-ak.scdn.co/mp3-ad/ad456"))
-        assertTrue(isAdAudioUrl("https://amillionads.com/ad789"))
-        assertTrue(isAdAudioUrl("https://adstudio-assets.scdn.co/creatives/x"))
-        assertTrue(isAdAudioUrl("https://audio-fa.spotifycdn.com/audio/ad000"))
+        assertTrue(isAdAudioUrl("https://rr1---sn-abc.googlevideo.com/videoplayback?itag=140&ctier=AFQ"))
+        assertTrue(isAdAudioUrl("https://rr1---sn-abc.googlevideo.com/videoplayback?itag=18&adformat=1_1"))
     }
 
     // --- Layer B3: static ad-CDN matching (proxy mode) --------------------
 
     @Test
     fun adCdnPatterns_areDetected() {
-        assertNotNull(matchAdCdn("https://mp3ad.scdn.co/ad123.mp3"))
-        assertNotNull(matchAdCdn("https://open.spotify.com/vast/vast.xml"))
-        assertNotNull(matchAdCdn("https://ads.spotify.com/ad-logic/ping"))
-        assertNotNull(matchAdCdn("https://pixel.spotify.com/pixel"))
-        assertNotNull(matchAdCdn("https://audio-ads.spotify.com/ad"))
-        assertNotNull(matchAdCdn("https://2mdn.net/ad"))
+        assertNotNull(matchAdCdn("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"))
+        assertNotNull(matchAdCdn("https://www.youtube.com/ptracking?video_id=abc"))
+        assertNotNull(matchAdCdn("https://www.youtube.com/api/stats/ads?ad_v=abc"))
+        assertNotNull(matchAdCdn("https://googleads.g.doubleclick.net/pagead/id"))
+        assertNotNull(matchAdCdn("https://example.com/vast/vast.xml"))
     }
 
     @Test
     fun musicCdn_isNeverAdCdn() {
         // Silencing these would mute real music. Locked in per the
-        // "never music CDN" rule in AdBlocker.kt.
-        assertNull(matchAdCdn("https://gew4-spclient.spotify.com/audio/music123"))
-        assertNull(matchAdCdn("https://audio-fa.scdn.co/audio/music456"))
-        assertNull(matchAdCdn("https://podz-content.spotifycdn.com/audio/ep789"))
-        assertNull(matchAdCdn("https://audio-fa.spotifycdn.com/audio/music000"))
-        assertNull(matchAdCdn("https://i.scdn.co/image/coverart"))
-        assertNull(matchAdCdn("https://open.spotify.com/track/abc"))
+        // "never music CDN" rule in AdBlocker.kt: music and ads share
+        // googlevideo, so only ad-only markers may match.
+        assertNull(matchAdCdn("https://rr1---sn-abc.googlevideo.com/videoplayback?itag=140"))
+        assertNull(matchAdCdn("https://manifest.googlevideo.com/api/manifest/hls_variant/itag/140"))
+        assertNull(matchAdCdn("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"))
+        assertNull(matchAdCdn("https://music.youtube.com/watch?v=dQw4w9WgXcQ"))
+        assertNull(matchAdCdn("https://music.youtube.com/youtubei/v1/player?prettyPrint=false"))
     }
 
     // --- Layer B4: harvested ad content IDs -------------------------------
@@ -90,15 +89,15 @@ class AdBlockerTest {
     @Test
     fun harvestedIds_matchExactMediaRequests() {
         assertTrue(AdIdStore.addAll(listOf("abc12345", "zzz_--12")))
-        assertTrue(AdIdStore.matches("https://audio-fa.scdn.co/audio/abc12345?x=1"))
-        assertTrue(AdIdStore.matches("https://gew4-spclient.spotify.com/audio/zzz_--12"))
-        assertFalse(AdIdStore.matches("https://audio-fa.scdn.co/audio/music999"))
+        assertTrue(AdIdStore.matches("https://rr1---sn-abc.googlevideo.com/videoplayback?id=abc12345&x=1"))
+        assertTrue(AdIdStore.matches("https://rr1---sn-abc.googlevideo.com/videoplayback?id=zzz_--12"))
+        assertFalse(AdIdStore.matches("https://rr1---sn-abc.googlevideo.com/videoplayback?id=music999"))
     }
 
     @Test
     fun invalidIds_areRejected() {
         assertFalse(AdIdStore.addAll(listOf("short", "has space12", "bad!chars1", "")))
-        assertFalse(AdIdStore.matches("https://audio-fa.scdn.co/audio/short"))
+        assertFalse(AdIdStore.matches("https://rr1---sn-abc.googlevideo.com/videoplayback?id=short"))
     }
 
     @Test
@@ -124,8 +123,7 @@ class AdBlockerTest {
 
     @Test
     fun powerHogUrls_areDetected_musicAudioIsNot() {
-        assertTrue(isPowerHogUrl("https://canvasset.scdn.co/canvas/x"))
-        assertTrue(isPowerHogUrl("https://open.spotify.com/video.mp4"))
-        assertFalse(isPowerHogUrl("https://audio-fa.scdn.co/audio/music123"))
+        assertTrue(isPowerHogUrl("https://example.com/video.mp4"))
+        assertFalse(isPowerHogUrl("https://rr1---sn-abc.googlevideo.com/videoplayback?itag=140/audio/x"))
     }
 }

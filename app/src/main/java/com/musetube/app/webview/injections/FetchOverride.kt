@@ -1,104 +1,98 @@
 package com.musetube.app.webview.injections
 
+/*
+ * YTM fetch override (rewritten from the Spotify connect-state version).
+ *
+ * Two jobs:
+ *  1. Best-effort adPlacements stripping: youtubei/v1/{player,browse,search,
+ *     next} responses are cloned and the ad-only keys (adPlacements,
+ *     playerAds, adBreakHeartbeatParams) are deleted before the page sees
+ *     them. A fresh Response is allocated — live collections are never
+ *     mutated. Any failure falls through to the original response, so this
+ *     can never break playback. YtmAdblock's watchdog is the backstop.
+ *  2. Track mirror: player responses populate the __curTrack* globals
+ *     (videoId/title/author/cover) so DownloadButton keeps working with real
+ *     data until Phase 5 rewrites the download buttons for YTM.
+ *
+ * Dropped Spotify-only behavior: spotAuthToken/spotCliToken/spotDevId
+ * harvesting, pathfinder op-hash capture, track-playback ffDone sync and the
+ * /metadata/4/track canonical_uri harvest (AndroidAuto/LibraryFetcher/
+ * SearchOverlay rewrites in later phases own their auth).
+ */
+
 object FetchOverride {
     const val CONTENT = """
             (function(){
                 if(window.oriFetch) return;
-                window.splOpHashes = window.splOpHashes || {};
                 var orig = window.fetch.bind(window);
                 window.oriFetch = orig;
+                var AD_KEYS = ['adPlacements', 'playerAds', 'adBreakHeartbeatParams'];
+                function stripAds(o, depth){
+                    if(!o || typeof o !== 'object' || depth > 8) return false;
+                    var changed = false;
+                    if(o instanceof Array) {
+                        for(var i = 0; i < o.length; i++){
+                            if(stripAds(o[i], depth + 1)) changed = true;
+                        }
+                        return changed;
+                    }
+                    var keys = null;
+                    try { keys = Object.keys(o); } catch(e){ return false; }
+                    for(var k = 0; k < keys.length; k++){
+                        var key = keys[k];
+                        var val;
+                        try { val = o[key]; } catch(e){ continue; }
+                        var isAdKey = false;
+                        for(var a = 0; a < AD_KEYS.length; a++){
+                            if(key === AD_KEYS[a]) { isAdKey = true; break; }
+                        }
+                        if(isAdKey) {
+                            try { delete o[key]; changed = true; } catch(e){}
+                        } else if(val && typeof val === 'object') {
+                            if(stripAds(val, depth + 1)) changed = true;
+                        }
+                    }
+                    return changed;
+                }
+                function mirrorTrack(j){
+                    try {
+                        var vd = j && j.videoDetails;
+                        if(vd && vd.videoId) {
+                            window.__curTrackId = vd.videoId;
+                            window.__curTrackName = vd.title || null;
+                            window.__curTrackArtist = vd.author || null;
+                            window.__curTrackAlbum = null;
+                            var th = vd.thumbnail && vd.thumbnail.thumbnails;
+                            if(th && th.length) window.__curTrackCover = th[th.length - 1].url;
+                        }
+                    } catch(e){}
+                }
                 window.fetch = function(input, init) {
-                    if(init && init.headers) {
-                        var h = init.headers;
-                        var auth, cliTok;
-                        if(typeof h.get === 'function') {
-                            auth = h.get('Authorization') || h.get('authorization');
-                            cliTok = h.get('Client-Token') || h.get('client-token');
-                        } else {
-                            auth = h.Authorization || h.authorization;
-                            cliTok = h['Client-Token'] || h['client-token'];
-                        }
-                        if(auth && typeof auth === 'string') {
-                            window.spotAuthToken = auth.indexOf('Bearer ')===-1 ? 'Bearer '+auth.replace(/^Bearer\s+/i,'') : auth;
-                        }
-                        if(cliTok) {
-                            window.spotCliToken = cliTok;
-                        }
-                    }
                     var url = typeof input==='string' ? input : (input ? input.url : '');
-                    if(url && url.indexOf) {
-                        var m = url.match(/\/from\/([A-Za-z0-9_-]+)\/to\//);
-                        if(m && m[1]) window.spotDevId = m[1];
-                        var m2 = url.match(/connect-state\/v1\/player\/(?:command|transfer)\/from\/([A-Za-z0-9_-]+)\/to\/([A-Za-z0-9_-]+)/);
-                        if(m2 && m2[2]) window.spotDevId = m2[2];
-                        var m3 = url.match(/\/track-playback\/v1\/devices/);
-                        if(m3 && init && init.body) {
-                            try {
-                                var pb = typeof init.body==='string' ? JSON.parse(init.body) : init.body;
-                                if(pb && pb.device && pb.device.device_id && pb.device.device_id!==window.spotDevId) {
-                                    window.spotDevId = pb.device.device_id;
-                                }
-                            } catch(e){}
-                        }
-                        var m4 = url.match(/connect-state\/v1\/player\/command/);
-                        if(m4 && init && init.headers) {
-                            var body = init.body;
-                            if(body && typeof body==='string') {
+                    var p = null;
+                    try { p = orig(input, init); } catch(e){ return orig.apply(this, arguments); }
+                    try {
+                        if(url && url.indexOf && /youtubei\/v1\/(player|browse|search|next)/.test(url)) {
+                            return Promise.resolve(p).then(function(res){
                                 try {
-                                    var j = JSON.parse(body);
-                                    if(j && j.command && j.command.context && j.command.context.uri) {
-                                        var m5 = j.command.context.uri.match(/spotify:track:([A-Za-z0-9]+)/);
-                                        if(m5) {
-                                            window.lastPlayedTrack = m5[1];
-                                        }
-                                    }
-                                } catch(e){}
-                            }
+                                    if(!res || typeof res.clone !== 'function') return res;
+                                    return res.clone().json().then(function(j){
+                                        try {
+                                            var changed = stripAds(j, 0);
+                                            if(url.indexOf('youtubei/v1/player') !== -1) mirrorTrack(j);
+                                            if(changed) {
+                                                return new Response(JSON.stringify(j), {
+                                                    status: res.status, statusText: res.statusText,
+                                                    headers: { 'Content-Type': 'application/json' }
+                                                });
+                                            }
+                                        } catch(e){}
+                                        return res;
+                                    }).catch(function(){ return res; });
+                                } catch(e){ return res; }
+                            }).catch(function(){ return p; });
                         }
-                    }
-                    var method = (init && init.method) ? String(init.method).toUpperCase() : 'GET';
-                    if(!window.__mtbOwnCall && url && url.indexOf && url.indexOf('api-partner.spotify.com/pathfinder/v2/query') !== -1 && init && init.body) {
-                        try {
-                            var qb = typeof init.body==='string' ? JSON.parse(init.body) : init.body;
-                            if(qb && qb.operationName && qb.extensions && qb.extensions.persistedQuery && qb.extensions.persistedQuery.sha256Hash) {
-                                window.splOpHashes[qb.operationName] = qb.extensions.persistedQuery.sha256Hash;
-                            }
-                        } catch(e){}
-                    }
-                    if(!window.__musetubeUseProxy && url && url.indexOf && (url.indexOf('connect-state') !== -1 || url.indexOf('melody/v1/msg') !== -1 || url.indexOf('/track-playback/') !== -1) && window.mngFetch) {
-                        return window.mngFetch(input, init);
-                    }
-                    if(window.ffDone && url && url.indexOf && url.indexOf('/track-playback/') !== -1 && method === 'PUT' && init && init.body) {
-                        try {
-                            var pb = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
-                            if(pb && pb.state_ref && pb.state_ref.paused === true && window.playing) {
-                                window.actPlayPause(false);
-                            } else if(pb && pb.state_ref && pb.state_ref.paused === false && !window.playing) {
-                                window.actPlayPause(true);
-                            }
-                        } catch(e){}
-                    }
-                    var p = orig.call(window, input, init);
-                    if(url && url.indexOf && url.indexOf('/metadata/4/track/') !== -1) {
-                        p.then(function(resp){
-                            try {
-                                resp.clone().text().then(function(t){
-                                    try {
-                                        var j = JSON.parse(t);
-                                        if(j && j.canonical_uri) {
-                                            window.__curTrackUri = j.canonical_uri;
-                                            window.__curTrackId = j.canonical_uri.replace('spotify:track:','');
-                                            window.__curTrackName = j.name || null;
-                                            window.__curTrackArtist = (j.artist && j.artist.length) ? j.artist[0].name : null;
-                                            window.__curTrackAlbum = (j.album) ? j.album.name : null;
-                                            var cg = j.album && j.album.cover_group && j.album.cover_group.image;
-                                            if(cg && cg.length) window.__curTrackCover = 'https://i.scdn.co/image/' + cg[0].file_id;
-                                        }
-                                    } catch(e){}
-                                });
-                            } catch(e){}
-                        });
-                    }
+                    } catch(e){}
                     return p;
                 };
             })();

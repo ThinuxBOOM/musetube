@@ -87,8 +87,7 @@ class MusicWebViewClient(
         }
         view?.evaluateJavascript(FetchOverride.CONTENT, null)
         AdIdStore.clear()
-        view?.evaluateJavascript(AdStateHook.CONTENT, null)
-        view?.evaluateJavascript(Adblockify.CONTENT, null)
+        view?.evaluateJavascript(YtmAdblock.CONTENT, null)
         if (blockSW) view?.evaluateJavascript(WorkerNeutralize.CONTENT, null)
         view?.evaluateJavascript(GaBlocker.CONTENT, null)
         view?.evaluateJavascript("window.__mtbPowerSavePref=$powerSave;", null)
