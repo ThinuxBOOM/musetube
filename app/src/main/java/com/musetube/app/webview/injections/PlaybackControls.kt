@@ -25,9 +25,23 @@ object PlaybackControls {
             };
             window.playFromUri = function(uri, contextUri) {
                 var id = window.mtbExtractVideoId(uri) || window.mtbExtractVideoId(contextUri);
-                if(!id) { try{ AndBridge.dbg('w','playFromUri: no videoId in ' + uri); }catch(e){} return; }
+                if(id) {
+                    try{ AndBridge.wakeUp(); }catch(e){}
+                    location.href = 'https://music.youtube.com/watch?v=' + id;
+                    return;
+                }
+                // YTM collection ids: playlists (VL*/LM), albums (MPRE*), artists (UC*), radios (RD*).
+                var raw = contextUri || uri || '';
+                var dest = null;
+                try {
+                    if(/^VL/i.test(raw) || raw === 'LM') dest = 'https://music.youtube.com/playlist?list=' + raw;
+                    else if(/^MPRE/.test(raw)) dest = 'https://music.youtube.com/browse/' + raw;
+                    else if(/^UC[A-Za-z0-9_-]{20,}$/.test(raw)) dest = 'https://music.youtube.com/channel/' + raw;
+                    else if(/^RD/.test(raw)) dest = 'https://music.youtube.com/watch?v=' + raw;
+                } catch(e){}
+                if(!dest) { try{ AndBridge.dbg('w','playFromUri: no YTM id in ' + uri); }catch(e){} return; }
                 try{ AndBridge.wakeUp(); }catch(e){}
-                location.href = 'https://music.youtube.com/watch?v=' + id;
+                location.href = dest;
             };
             window.mtbBarBtn = function(pred) {
                 var bar = document.querySelector('ytmusic-player-bar');

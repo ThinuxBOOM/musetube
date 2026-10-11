@@ -390,10 +390,13 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             result.sendResult(items)
             return
         }
-        // YTM media ids: FE* browse ids (FEmusic_*), VL* playlist ids, or a raw
-        // 11-char videoId. (Phase 4's YtmAuto produces these.)
+        // YTM media ids: FE* browse ids (FEmusic_*), VL* playlists, MPRE* albums,
+        // UC* artists/channels, RD* radios, LM liked songs, or a raw 11-char
+        // videoId. (Phase 4's YtmAuto produces these.)
         if (parentId.startsWith("FEmusic_") || parentId.startsWith("FE") ||
-            parentId.startsWith("VL") ||
+            parentId.startsWith("VL") || parentId.startsWith("MPRE") ||
+            parentId.startsWith("UC") || parentId.startsWith("RD") ||
+            parentId == "LM" ||
             parentId.matches(Regex("[A-Za-z0-9_-]{11}"))
         ) {
             lastActiveContextId = parentId

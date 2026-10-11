@@ -16,10 +16,12 @@ object PowerSave {
 
             function isCanvasVideo(v){
                 try{
+                    // YTM: the main playback element must never be frozen — it is
+                    // the audio source. Only ambient/background clips qualify.
+                    if(v.closest && v.closest('ytmusic-player')) return false;
                     if(v.muted) return true;
                     if(v.hasAttribute && v.hasAttribute('loop')) return true;
                     if(v.style && v.style.objectFit === 'cover') return true;
-                    if(v.closest && (v.closest('[data-testid=canvas-container]') || v.closest('[data-testid=canvas]'))) return true;
                 }catch(e){}
                 return false;
             }

@@ -264,7 +264,7 @@ class MusicWebViewClient(
             append(LibraryFetcher.CONTENT)
             append(LibraryParser.CONTENT)
             append(PlaybackControls.CONTENT)
-            append(AndroidAuto.CONTENT)
+            append(YtmAuto.CONTENT)
             append(MainLoop.CONTENT)
             append(AutoFeatures.CONTENT)
             append(SearchOverlay.CONTENT)
