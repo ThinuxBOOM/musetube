@@ -1,5 +1,11 @@
 # MuseTube — Project Outline
 
+> Status (2026-10-11): initial framework complete — Phases 0–6 committed
+> (`1ead3dd` → `34fa9eb` → Phase 6). `assembleDebug` + `testDebugUnitTest`
+> green. Deferred post-framework: Firebase enablement, release
+> keystore/signing, Play Store, launcher-icon art, gradle-wrapper.jar
+> restore. On-device signed-in verification still pending (§10).
+
 ## 0. Goal & Locked Decisions
 
 Build a **separate app named MuseTube** that replaces the Spotify WebView
@@ -327,14 +333,36 @@ permissions/services, change label/icon only.
 Accept: AMOLED/MaterialYou/prefs hot-apply; CA install works;
 `:app:assembleRelease` + ProGuard + `./gradlew :app:testDebugUnitTest` green.
 
+Done with deviations: release signing/keystore + Firebase stay stubbed
+(post-framework per owner); `assembleDebug` + unit tests green instead of
+`assembleRelease`. `SearchOverlay` retired to a no-op (YTM's native search
+box serves it) rather than rewritten; `QueueAutoClose`/`LibraryAutoClose`
+stubbed (no YTM panels); dead `LibraryFetcher`/`LibraryParser` deleted;
+`MuseTubePlayer` overlay rebound to tracker globals + YTM controls (lyrics
+button hidden — lyrics still non-goal).
+
 ---
 
 ## 10. Build Order, Verification, Risks
 
-Order: 0 → 1 (+DOM dump) → 2 → 3 → 4 → 5 → 6. Don't start Auto/offline before
-tracker JSON stable. Per-phase verify with `assembleDebug` + manual matrix
+Order: 0 → 1 (+DOM dump) → 2 → 3 → 4 → 5 → 6 — all committed.
+Don't start Auto/offline before tracker JSON stable (done — contract
+frozen in Phase 2). Per-phase verify with `assembleDebug` + manual matrix
 (free + premium, WiFi/cell, screen-off, BT, Auto DHU, airplane offline, proxy
-on/off). Non-goals v1: lyrics sync, podcast parity, Play Store release
-(sideload like README). Risks: Google login bot-check (mitigate with desktop UA
+on/off). Automated side is green (debug APK `com.musetube.app`, 11 unit
+tests); the manual matrix needs a signed-in device and is still pending.
+Non-goals v1: lyrics sync, podcast parity, Play Store release (sideload like README). Risks: Google login bot-check (mitigate with desktop UA
 + GoogleSpoof), YTM markup drift (mitigate via `YtmSelectors.kt`), ad/SABR arms
 race (mitigate via in-tree `yt/potoken/` + `cipher/`).
+
+## 11. Phase Log
+
+| Phase | Commit | What landed |
+|---|---|---|
+| 0 Fork & rebrand | `1ead3dd` | clean copy, `com.musetube.app`, prefs/CA/colors/JS globals, `Constants.kt`, `YtmSelectors.kt` stub, Firebase stubbed |
+| 1 WebView shell + auth | `0747c0f` | YTM_HOME/GOOGLE_LOGIN entry, `isMusicUrl`/`isOAuthUrl`, `YtmLoginDetection`, ProfileManager YTM domains, DOM dump frozen |
+| 2 Tracker + bridge | `436618d` | `YtmTrackObserver` (11-char ids, ms units, same JSON contract), YTM `PlaybackControls`, nFetch YTM guard, Auto id guard |
+| 3 Adblocking | `996d6db` | YTM `AdBlocker` lists, `YtmAdblock` watchdog, `FetchOverride` adPlacements strip + track mirror, 11 YTM unit tests |
+| 4 Background + Auto | `bc65523` | `YtmAuto` (youtubei via nFetch+SAPISIDHASH), VL/MPRE/UC/RD play, PowerSave guard, BT/PiP/sleep kept |
+| 5 Offline | `34fa9eb` | YTM download buttons/menus/collection scrape, direct-videoId fast path |
+| 6 Polish | _(this commit)_ | YTM CssHack/overlay/MainLoop/AutoFeatures, retired SearchOverlay/Queue/Library stubs, settings+error copy, docs |

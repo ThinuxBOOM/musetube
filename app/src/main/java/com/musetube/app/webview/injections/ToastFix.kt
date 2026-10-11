@@ -124,9 +124,9 @@ object ToastFix {
             }
 
             function place(el, idx){
-                var vh = (typeof window.splViewH === 'function') ? window.splViewH()
+                var vh = (typeof window.mtbViewH === 'function') ? window.mtbViewH()
                         : (document.documentElement.clientHeight || window.innerHeight || 600);
-                var pt = (typeof window.splPlayerTop === 'function') ? window.splPlayerTop() : vh;
+                var pt = (typeof window.mtbPlayerTop === 'function') ? window.mtbPlayerTop() : vh;
                 var above = Math.max(10, vh - pt) + GAP + floatedSyncCount() * 52 + idx * STACK;
                 var roof = vh - 60;
                 if (above > roof) above = roof;

@@ -24,37 +24,38 @@ object MuseTubePlayer {
     const val CONTENT = """
             window.initMuseTubePlayer=function(){
                 if(document.getElementById('musetubePlayerControls')) return;
-                var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
+                var npb=document.querySelector('ytmusic-player-bar');
                 if(!npb) return;
                 npb.style.display='none';
 
-                function splFindShuffle(){
-                    var b=document.querySelector('button[data-testid="control-button-shuffle"]');
-                    if(b) return b;
-                    var all=document.querySelectorAll('button');
+                function mtbFindShuffle(){
+                    var bar=document.querySelector('ytmusic-player-bar');
+                    if(!bar) return null;
+                    var all=bar.querySelectorAll('yt-icon-button, button');
                     for(var i=0;i<all.length;i++){
-                        var al=all[i].getAttribute('aria-label')||'';
-                        if(/shuffle/i.test(al)&&!/mtb-btn/.test(all[i].className||'')) return all[i];
+                        var el=all[i].querySelector('button')||all[i];
+                        var al=(all[i].getAttribute('aria-label')||'')+' '+(el.getAttribute('aria-label')||'');
+                        if(/shuffle/i.test(al)) return el;
                     }
                     return null;
                 }
-                function splFindRepeat(){
-                    var b=document.querySelector('button[data-testid="control-button-repeat"]');
-                    if(b) return b;
-                    var all=document.querySelectorAll('button');
+                function mtbFindRepeat(){
+                    var bar=document.querySelector('ytmusic-player-bar');
+                    if(!bar) return null;
+                    var all=bar.querySelectorAll('yt-icon-button, button');
                     for(var i=0;i<all.length;i++){
-                        var al=all[i].getAttribute('aria-label')||'';
-                        if(/repeat/i.test(al)&&!/mtb-btn/.test(all[i].className||'')) return all[i];
+                        var el=all[i].querySelector('button')||all[i];
+                        var al=(all[i].getAttribute('aria-label')||'')+' '+(el.getAttribute('aria-label')||'');
+                        if(/^repeat/i.test(al.trim())) return el;
                     }
                     return null;
                 }
-                function splShuffleState(){
-                    var b=splFindShuffle();
+                function mtbShuffleState(){
+                    if(typeof shuffle!=='undefined') return shuffle;
+                    var b=mtbFindShuffle();
                     if(!b) return 'off';
-                    if(b.getAttribute('aria-disabled')==='true') return 'disabled';
-                    if(b.getAttribute('aria-checked')==='true') return 'shuffle';
+                    if(b.getAttribute('aria-pressed')==='true') return 'shuffle';
                     var al=b.getAttribute('aria-label')||'';
-                    if(/smart shuffle/i.test(al)) return /^disable/i.test(al)?'smart':'shuffle';
                     return /^disable/i.test(al)?'shuffle':'off';
                 }
 
@@ -114,42 +115,39 @@ object MuseTubePlayer {
 
                 if(!document.getElementById('mtb-vol-css')){
                     var sst=document.createElement('style');sst.id='mtb-vol-css';
-                    sst.textContent='#musetubePlayerControls .mtb-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#musetubePlayerControls .mtb-vol-btn{flex-shrink:0}#musetubePlayerControls .mtb-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#musetubePlayerControls .mtb-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#musetubePlayerControls .mtb-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:var(--mtb-accent,#1db954);width:0%}#musetubePlayerControls .mtb-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#musetubePlayerControls .mtb-vol-bar:hover .mtb-vol-handle,#musetubePlayerControls .mtb-vol-bar:active .mtb-vol-handle{opacity:1}#musetubePlayerControls.mtb-empty{opacity:0!important;pointer-events:none!important;transform:translateY(24px)!important}';
+                    sst.textContent='#musetubePlayerControls .mtb-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#musetubePlayerControls .mtb-vol-btn{flex-shrink:0}#musetubePlayerControls .mtb-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#musetubePlayerControls .mtb-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#musetubePlayerControls .mtb-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:var(--mtb-accent,#ff0000);width:0%}#musetubePlayerControls .mtb-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#musetubePlayerControls .mtb-vol-bar:hover .mtb-vol-handle,#musetubePlayerControls .mtb-vol-bar:active .mtb-vol-handle{opacity:1}#musetubePlayerControls.mtb-empty{opacity:0!important;pointer-events:none!important;transform:translateY(24px)!important}';
                     var t=document.head||document.documentElement;if(t)t.appendChild(sst);
                 }
 
                 if(!document.getElementById('mtb-vol-css')){
                     var sst=document.createElement('style');sst.id='mtb-vol-css';
-                    sst.textContent='#musetubePlayerControls .mtb-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#musetubePlayerControls .mtb-vol-btn{flex-shrink:0}#musetubePlayerControls .mtb-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#musetubePlayerControls .mtb-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#musetubePlayerControls .mtb-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:#1db954;width:0%}#musetubePlayerControls .mtb-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#musetubePlayerControls .mtb-vol-bar:hover .mtb-vol-handle,#musetubePlayerControls .mtb-vol-bar:active .mtb-vol-handle{opacity:1}';
+                    sst.textContent='#musetubePlayerControls .mtb-vol-wrap{display:flex;align-items:center;gap:2px;margin-right:2px}#musetubePlayerControls .mtb-vol-btn{flex-shrink:0}#musetubePlayerControls .mtb-vol-bar{position:relative;width:70px;height:38px;display:flex;align-items:center;cursor:pointer;flex-shrink:0;margin:0 2px}#musetubePlayerControls .mtb-vol-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:rgba(255,255,255,.14)}#musetubePlayerControls .mtb-vol-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;background:#ff0000;width:0%}#musetubePlayerControls .mtb-vol-handle{position:absolute;top:50%;left:0%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:0;transition:opacity .15s;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}#musetubePlayerControls .mtb-vol-bar:hover .mtb-vol-handle,#musetubePlayerControls .mtb-vol-bar:active .mtb-vol-handle{opacity:1}';
                     var t=document.head||document.documentElement;if(t)t.appendChild(sst);
                 }
 
                 document.getElementById('mtb-prev').onclick=function(){actSkipBack()};
                 document.getElementById('mtb-next').onclick=function(){actSkipForward()};
-                document.getElementById('mtb-play').onclick=function(){var pb=document.querySelector('button[data-testid=control-button-playpause]');actPlayPause(pb&&pb.getAttribute('aria-label')==='Play')};
+                document.getElementById('mtb-play').onclick=function(){actPlayPause()};
                 document.getElementById('mtb-prev-mini').onclick=function(){actSkipBack()};
                 document.getElementById('mtb-next-mini').onclick=function(){actSkipForward()};
-                document.getElementById('mtb-play-mini').onclick=function(){var pb=document.querySelector('button[data-testid=control-button-playpause]');actPlayPause(pb&&pb.getAttribute('aria-label')==='Play')};
-                document.getElementById('mtb-shuffle').onclick=function(){var sb=splFindShuffle();if(sb&&sb.getAttribute('aria-disabled')!=='true')sb.click()};
+                document.getElementById('mtb-play-mini').onclick=function(){actPlayPause()};
+                document.getElementById('mtb-shuffle').onclick=function(){actToggleShuffle()};
                 document.getElementById('mtb-repeat').onclick=function(){actRepeat()};
-                document.getElementById('mtb-lyrics').onclick=function(){if(this.classList.contains('mtb-disabled'))return;if(typeof closeNowPlay==='function') closeNowPlay();var lb=document.querySelector('button[data-testid=lyrics-button]');if(lb&&!lb.disabled)lb.click()};
-                document.getElementById('mtb-queue').onclick=function(){var qb=document.querySelector('button[data-testid=control-button-queue]');if(qb)qb.click()};
-                document.getElementById('mtb-vol-btn').onclick=function(){var vb=document.querySelector('button[data-testid=volume-bar-toggle-mute-button]');if(vb)vb.click()};
+                document.getElementById('mtb-lyrics').style.display='none';
+                document.getElementById('mtb-queue').onclick=function(){clickNP()};
+                document.getElementById('mtb-vol-btn').onclick=function(){
+                    var v=document.querySelector('ytmusic-player video');
+                    if(v){ try{ v.muted=!v.muted; }catch(e){} }
+                };
                 (function(){
                     var vBar=document.getElementById('mtb-vol-bar');
-                    function splVolRange(){var r=document.querySelector('div[data-testid="volume-bar"] input[type="range"]');if(r)return r;return document.querySelector('input[type="range"][data-testid="volume-bar"]');}
-                    function splSetVolPct(pct){
-                        var rng=splVolRange();
-                        if(!rng)return;
-                        var max=parseFloat(rng.getAttribute('max'))||1;
-                        var val=pct*max;
-                        if(pct<=0) val=parseFloat(rng.getAttribute('min'))||0;
-                        var setter=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;
-                        setter.call(rng,String(val));
-                        rng.dispatchEvent(new Event('input',{bubbles:true}));
-                        rng.dispatchEvent(new Event('change',{bubbles:true}));
+                    function mtbSetVolPct(pct){
+                        var v=document.querySelector('ytmusic-player video');
+                        if(!v) return;
+                        pct=Math.max(0,Math.min(1,pct));
+                        try{ v.volume=pct; v.muted=(pct<=0); }catch(e){}
                     }
-                    function volTo(e){if(!vBar)return;var r=vBar.getBoundingClientRect();var pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));splSetVolPct(pct);}
+                    function volTo(e){if(!vBar)return;var r=vBar.getBoundingClientRect();var pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));mtbSetVolPct(pct);}
                     var vDrag=false;
                     vBar.addEventListener('mousedown',function(e){vDrag=true;volTo(e);});
                     vBar.addEventListener('touchstart',function(e){vDrag=true;volTo(e.touches[0]);},{passive:true});
@@ -162,7 +160,7 @@ object MuseTubePlayer {
                 document.getElementById('mtb-nptoggle').onclick=function(){clickNP()};
                 document.getElementById('mtb-timer').onclick=function(){AndBridge.openTimerDialog()};
                 document.getElementById('mtb-pip').onclick=function(){
-                    var pv=document.querySelector('.VideoPlayer__container video');
+                    var pv=document.querySelector('ytmusic-player video');
                     if(pv){
                         var w=pv.videoWidth||0,h=pv.videoHeight||0;
                         try{pv.requestFullscreen();}catch(e){}
@@ -172,7 +170,7 @@ object MuseTubePlayer {
                     }
                 };
                 document.getElementById('mtb-liked').onclick=function(){actAddToFav()};
-                document.getElementById('mtb-download').onclick=function(){splDoDownload()};
+                document.getElementById('mtb-download').onclick=function(){window.mtbDoDownload()};
                 document.getElementById('mtb-dl-cancel').onclick=function(){ try{ AndBridge.cancelDownload(); }catch(e){} };
 
                 var splTrack=document.getElementById('mtb-track');
@@ -181,22 +179,21 @@ object MuseTubePlayer {
                 splArtist.style.cursor='pointer';
                 splTrack.onclick=function(){
                     if(pl.classList.contains('mtb-mini'))return;
-                    if(typeof closeNowPlay==='function') closeNowPlay();
-                    var rl=document.querySelector('a[data-testid=context-item-link]');
-                    if(rl){rl.click();}
+                    if(typeof clickNP==='function') clickNP();
                 };
                 splArtist.onclick=function(){
                     if(pl.classList.contains('mtb-mini'))return;
-                    if(typeof closeNowPlay==='function') closeNowPlay();
-                    var al=document.querySelector('a[data-testid=context-item-info-artist]');
-                    if(!al) al=document.querySelector('a[data-testid=context-item-info-show]');
-                    if(al){al.click();}
+                    try {
+                        var al=document.querySelector('ytmusic-player-bar .byline-wrapper a[href]');
+                        if(al){ al.click(); return; }
+                    } catch(e){}
+                    if(typeof clickNP==='function') clickNP();
                 };
 
                 var barEl=document.getElementById('mtb-bar');
                 var edgeBarEl=document.getElementById('mtb-edgebar');
                 var dragging=false,dragEl=barEl;
-                function seekTo(el,e){var r=el.getBoundingClientRect();var pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));var rg=document.querySelector('[data-testid="playback-progressbar"] input[type=range]');var mx=parseInt(rg?rg.getAttribute('max'):0)||1;actSeek(Math.round(pct*mx))}
+                function seekTo(el,e){var r=el.getBoundingClientRect();var pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));var mx=(typeof duration==='number'&&duration>0)?duration:0;actSeek(Math.round(pct*mx))}
                 function bindSeek(el){el.addEventListener('mousedown',function(e){dragEl=el;dragging=true;seekTo(el,e)});el.addEventListener('touchstart',function(e){dragEl=el;dragging=true;seekTo(el,e.touches[0])},{passive:true});}
                 bindSeek(barEl);bindSeek(edgeBarEl);
                 document.addEventListener('mousemove',function(e){if(dragging)seekTo(dragEl,e)});
@@ -208,7 +205,7 @@ object MuseTubePlayer {
                 var splDrag=null,splSuppressClick=false,splLastDragEnd=0;
                 function splSetMini(m){
                     splMini=!!m;
-                    window.splMiniPref=splMini;
+                    window.mtbMiniPref=splMini;
                     pl.classList.toggle('mtb-mini',splMini);
                 }
                 function splDragStart(x,y){
@@ -248,7 +245,7 @@ object MuseTubePlayer {
                 pl.addEventListener('mousedown',function(e){if(e.button!==0)return;if(e.target.closest('#mtb-bar')||e.target.closest('#mtb-edgebar')||e.target.closest('.mtb-vol-bar')||e.target.closest('button'))return;splDragStart(e.clientX,e.clientY);});
                 document.addEventListener('mousemove',function(e){splDragMove(e.clientX,e.clientY);});
                 document.addEventListener('mouseup',function(){splDragEnd();});
-                pl.addEventListener('click',function(e){if(splSuppressClick)return;if(Date.now()-splLastDragEnd<400)return;if(splMini&&!e.target.closest('button')&&!e.target.closest('#mtb-bar')&&!e.target.closest('#mtb-edgebar'))splSetMini(false);});                    window.splUpdate=function(){
+                pl.addEventListener('click',function(e){if(splSuppressClick)return;if(Date.now()-splLastDragEnd<400)return;if(splMini&&!e.target.closest('button')&&!e.target.closest('#mtb-bar')&&!e.target.closest('#mtb-edgebar'))splSetMini(false);});                    window.mtbUpdate=function(){
                         var ci=document.getElementById('mtb-cover-img');
                         var tk=document.getElementById('mtb-track');
                         var ar=document.getElementById('mtb-artist');
@@ -266,21 +263,14 @@ object MuseTubePlayer {
                         var ly=document.getElementById('mtb-lyrics');
                         var tm=document.getElementById('mtb-timer');
 
-                        var npb=document.querySelector('[data-testid="now-playing-widget"]');
-                        var imgEl=npb?npb.querySelector('img[data-testid="cover-art-image"]'):null;
-                        if(ci&&imgEl&&imgEl.src&&ci.src!==imgEl.src) ci.src=imgEl.src;
+                        if(ci&&typeof cover!=='undefined'&&cover&&ci.src!==cover) ci.src=cover;
+                        var ttxt=(typeof track!=='undefined'&&track)?track:'No track';
+                        if(tk&&tk.textContent!==ttxt) tk.textContent=ttxt;
+                        var atxt=(typeof artist!=='undefined'&&artist)?artist:'—';
+                        if(ar&&ar.textContent!==atxt) ar.textContent=atxt;
 
-                        var trackEl=document.querySelector('a[data-testid=context-item-link]');
-                        if(tk&&trackEl&&trackEl.textContent&&tk.textContent!==trackEl.textContent) tk.textContent=trackEl.textContent;
-
-                        var artistEl=document.querySelector('a[data-testid=context-item-info-artist]');
-                        if(!artistEl) artistEl=document.querySelector('a[data-testid=context-item-info-show]');
-                        if(ar&&artistEl&&tk.textContent!=='No track') ar.textContent=artistEl.textContent||'';
-
-                        var rg=document.querySelector('[data-testid="playback-progressbar"] input[type=range]');
                         if(pp||ppm){
-                            var pb=document.querySelector('button[data-testid=control-button-playpause]');
-                            var isPlaying=pb&&pb.getAttribute('aria-label')!=='Play';
+                            var isPlaying=!!window.playing;
                             var ph=isPlaying
                                 ?'<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2.7 1a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7zm8 0a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7z"/></svg>'
                                 :'<svg viewBox="0 0 16 16"><path fill="currentColor" d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288z"/></svg>';
@@ -288,7 +278,7 @@ object MuseTubePlayer {
                             if(ppm)ppm.innerHTML=ph;
                         }
                         if(sh){
-                            var sst=splShuffleState();
+                            var sst=(typeof shuffle!=='undefined')?shuffle:'off';
                             sh.classList.toggle('mtb-active',sst==='shuffle'||sst==='smart');
                             sh.classList.toggle('mtb-disabled',sst==='disabled');
                             var isSmart=sst==='smart';
@@ -300,9 +290,8 @@ object MuseTubePlayer {
                             }
                         }
                         if(rp){
-                            var rr=splFindRepeat();
-                            var rc=rr?rr.getAttribute('aria-checked'):null;
-                            var rDisabled=!!(rr&&(rr.disabled||rr.getAttribute('aria-disabled')==='true'));
+                            var rc=(typeof repmode!=='undefined')?repmode:'false';
+                            var rDisabled=false;
                             rp.classList.toggle('mtb-active',rc==='true'||rc==='mixed');
                             rp.classList.toggle('mtb-disabled',rDisabled);
                             rp.classList.toggle('mtb-repeat-track',rc==='mixed');
@@ -315,19 +304,18 @@ object MuseTubePlayer {
                             }
                         }
                         if(lk){
-                            var fb=document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');
-                            var liked=fb&&fb.getAttribute('aria-checked')==='true';
+                            var liked=(typeof isfav!=='undefined')&&isfav===true;
                             lk.classList.toggle('mtb-active',liked===true);
                         }
                         if(vl){
                             var vbb=document.getElementById('mtb-vol-btn');
                             var vf=document.getElementById('mtb-vol-fill');
                             var vh=document.getElementById('mtb-vol-handle');
-                            var vrb=document.querySelector('button[data-testid=volume-bar-toggle-mute-button]');
-                            var vrg=document.querySelector('div[data-testid="volume-bar"] input[type="range"]')||document.querySelector('input[type="range"][data-testid="volume-bar"]');
+                            var vrb=null;
+                            var vv=document.querySelector('ytmusic-player video');
                             var vpct=0;
-                            if(vrg){vpct=parseFloat(vrg.value||'0')/(parseFloat(vrg.getAttribute('max'))||1);}
-                            var muted=(vrb&&vrb.getAttribute('aria-label')==='Unmute')||vpct<=0;
+                            if(vv){vpct=vv.muted?0:(typeof vv.volume==='number'?vv.volume:0);}
+                            var muted=!vv||vv.muted||vpct<=0;
                             vl.classList.toggle('mtb-active',muted===true);
                             var hasX=vbb&&!!vbb.querySelector('.mtb-mute-x');
                             if(muted&&!hasX){
@@ -338,32 +326,19 @@ object MuseTubePlayer {
                             if(vf) vf.style.width=(Math.max(0,Math.min(1,vpct))*100)+'%';
                             if(vh) vh.style.left=(Math.max(0,Math.min(1,vpct))*100)+'%';
                         }
-                        var lb=document.querySelector('button[data-testid=lyrics-button]');
-                        if(lb){
-                            ly.style.display='';
-                            ly.classList.toggle('mtb-disabled',lb.disabled||lb.getAttribute('aria-disabled')==='true');
-                        } else {
-                            ly.style.display='none';
-                        }
+                        if(ly) ly.style.display='none';
                         if(tm) tm.classList.toggle('mtb-active',typeof sleepTimerActive!=='undefined'&&sleepTimerActive&&sleepTimerActive.value);
                         var dcb=document.getElementById('mtb-dl-cancel');
                         if(dcb) dcb.style.display = window.__mtbDlActive ? '' : 'none';
 
-                        var pbEl=document.querySelector('[data-testid="playback-progressbar"] [data-testid="progress-bar"]');
-                        if(pbEl){
-                            var cs=getComputedStyle(pbEl);
-                            var tr=cs.getPropertyValue('--progress-bar-transform');
-                            if(tr){
-                                var pct=parseFloat(tr)||0;
-                                if(fl) fl.style.transform='scaleX('+(pct/100)+')';
-                                if(fe) fe.style.transform='scaleX('+(pct/100)+')';
-                                if(hd) hd.style.left=pct+'%';
-                            }
-                        }
-                        var posEl=document.querySelector('[data-testid="playback-position"]');
-                        var durEl=document.querySelector('[data-testid="playback-duration"]');
-                        if(ps&&posEl) ps.textContent=posEl.textContent;
-                        if(ds&&durEl) ds.textContent=durEl.textContent;
+                        var durMs=(typeof duration==='number'&&duration>0)?duration:0;
+                        var posMs=(typeof position==='number'&&position>0)?position:0;
+                        var pct=durMs>0?Math.max(0,Math.min(1,posMs/durMs)):0;
+                        if(fl) fl.style.transform='scaleX('+pct+')';
+                        if(fe) fe.style.transform='scaleX('+pct+')';
+                        if(hd) hd.style.left=(pct*100)+'%';
+                        if(ps) ps.textContent=formatTime(posMs);
+                        if(ds) ds.textContent=formatTime(durMs);
                         mtbApplyEmpty();
                     };
                     function formatTime(ms){
@@ -373,18 +348,17 @@ object MuseTubePlayer {
 
                     var rafLastTime=0;
                     function rafUpdate(timestamp){
-                        if(timestamp-rafLastTime>100){ splUpdate(); rafLastTime=timestamp; }
+                        if(timestamp-rafLastTime>100){ mtbUpdate(); rafLastTime=timestamp; }
                         requestAnimationFrame(rafUpdate);
                     }
-                    if(window.splMiniPref) splSetMini(true);
+                    if(window.mtbMiniPref) splSetMini(true);
                     requestAnimationFrame(rafUpdate);
             };
             if(document.readyState==='complete') initMuseTubePlayer();
             else window.addEventListener('load',initMuseTubePlayer);
             setInterval(function(){
                 if(window.__mtbBg) return;
-                var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
-                if(npb&&npb.style.display!=='none') initMuseTubePlayer();
+                if(!document.getElementById('musetubePlayerControls')) initMuseTubePlayer();
             },3000);
         
     """

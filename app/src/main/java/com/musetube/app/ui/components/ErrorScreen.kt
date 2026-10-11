@@ -40,11 +40,11 @@ import androidx.compose.ui.unit.sp
 
 enum class WebViewErrorType(val title: String, val message: String) {
     NO_INTERNET("You're Offline", "No internet connection detected.\nCheck your network and try again."),
-    TIMEOUT("Connection Timed Out", "Spotify took too long to respond.\nThe connection was dropped."),
-    CONNECT_FAILED("Can't Reach Spotify", "Couldn't establish a connection\nto Spotify's servers."),
+    TIMEOUT("Connection Timed Out", "YouTube Music took too long to respond.\nThe connection was dropped."),
+    CONNECT_FAILED("Can't Reach YouTube Music", "Couldn't establish a connection\nto YouTube Music's servers."),
     SSL_ERROR("Secure Connection Failed", "Couldn't establish a secure connection.\nIf using proxy mode, check the CA certificate."),
-    SERVER_ERROR("Server Error", "Spotify's servers hit a snag.\nTry again in a moment."),
-    GENERIC("Something Went Wrong", "An unexpected error occurred\nwhile loading Spotify.")
+    SERVER_ERROR("Server Error", "YouTube Music's servers hit a snag.\nTry again in a moment."),
+    GENERIC("Something Went Wrong", "An unexpected error occurred\nwhile loading YouTube Music.")
 }
 
 fun mapWebViewError(errorCode: Int): WebViewErrorType = when (errorCode) {

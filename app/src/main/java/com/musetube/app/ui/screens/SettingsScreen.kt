@@ -123,7 +123,7 @@ import kotlinx.coroutines.launch
 
 private val PalettePresets = listOf(
     "Default" to null,
-    "Spotify Green" to "#1DB954",
+    "MuseTube Red" to "#FF0000",
     "Purple" to "#BB86FC",
     "Blue" to "#2196F3",
     "Red" to "#E53935",
@@ -348,7 +348,7 @@ fun SettingsContent(
 
             val playerModeLabel = when (playerMode) {
                 "musetube" -> "MuseTube Player"
-                "original" -> "Spotify Original"
+                "original" -> "YouTube Music Original"
                 else -> "MuseTube Player"
             }
             SettingTile(
@@ -458,7 +458,7 @@ fun SettingsContent(
 
             SettingSwitchTile(
                 title = "Block Service Worker",
-                subtitle = "Prevent Spotify's SW from intercepting requests",
+                subtitle = "Prevent YouTube Music's SW from intercepting requests",
                 icon = Icons.Default.Shield,
                 checked = blockSW,
                 onCheckedChange = { enabled ->
@@ -521,7 +521,7 @@ fun SettingsContent(
                 onClick = {
                     val cookies = ProfileManager.captureSession(context)
                     if (cookies == null) {
-                        Toast.makeText(context, "Log in to Spotify first", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Log in to YouTube Music first", Toast.LENGTH_SHORT).show()
                     } else {
                         pendingCookies = cookies
                         accountNameInput = prefs.getString("CurrentAccountName", "") ?: ""
@@ -718,7 +718,7 @@ fun SettingsContent(
             text = {
                 Column {
                     Text(
-                        text = "The current Spotify session will be stored on this device.",
+                        text = "The current Google session will be stored on this device.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -802,7 +802,7 @@ fun SettingsContent(
             title = "Player Mode",
             options = listOf(
                 "musetube" to "MuseTube Player",
-                "original" to "Spotify Original"
+                "original" to "YouTube Music Original"
             ),
             selected = playerMode,
             onSelect = { value ->
@@ -1519,7 +1519,7 @@ fun CustomCssDialog(
         text = {
             Column {
                 Text(
-                    text = "Injected custom CSS rules into Spotify webview",
+                    text = "Injected custom CSS rules into YouTube Music webview",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)

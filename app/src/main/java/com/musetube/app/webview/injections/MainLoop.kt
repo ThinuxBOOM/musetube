@@ -1,22 +1,34 @@
 package com.musetube.app.webview.injections
 
+/*
+ * YTM main loop (rewritten from the Spotify version).
+ *
+ * Same responsibilities, YTM elements:
+ *  - anchors the now-playing + timer buttons before the player-bar
+ *    more-button (.toggle-menu-button),
+ *  - wires the YTM play/pause button (#play-pause-button) via wirePlayBtn
+ *    (keeps the unlock watchdog + ffDone one-shot that boots addAndAuto /
+ *    addAutoFeatures / addCSSJSHack and signals AndBridge.playLoaded()),
+ *  - background/foreground wake hints keyed on the ytmusic-player video
+ *    element instead of Spotify's VideoPlayer container.
+ */
+
 object MainLoop {
     const val CONTENT = """
             window.firstFuck = function(){
                 if(pfint) clearInterval(pfint);
                 pfint = setInterval(function(){
-                    if(playing && document.visibilityState=='hidden' && !!document.querySelector('.VideoPlayer__container video')) {
+                    var v = document.querySelector('ytmusic-player video');
+                    if(playing && document.visibilityState=='hidden' && !!v) {
                         AndBridge.wakeUp();
-                    } else if(!AndBridge.isWoke() && document.visibilityState=='visible' && !document.querySelector('.VideoPlayer__container video')) {
+                    } else if(!AndBridge.isWoke() && document.visibilityState=='visible' && !v) {
                         AndBridge.wakeOff();
                     }
 
                     if(typeof npBtn=='undefined') {
-                        var lyBtn = document.querySelector('button[data-testid=lyrics-button]:not(.fuckd)');
-                        var queueBtn = document.querySelector('button[data-testid=control-button-queue]:not(.fuckd)');
-                        var anchorBtn = lyBtn || queueBtn;
+                        var anchorBtn = document.querySelector('ytmusic-player-bar .toggle-menu-button:not(.fuckd)');
                         if(anchorBtn) {
-                            if(anchorBtn === lyBtn) lyBtn.classList.add('fuckd');
+                            anchorBtn.classList.add('fuckd');
                             npBtn = document.createElement('button');
                             npBtn.className = 'npbtn';
                             npBtn.onclick = clickNP;
@@ -31,14 +43,16 @@ object MainLoop {
                         }
                     }
 
-                    var pb = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
+                    var pb = document.querySelector('ytmusic-player-bar #play-pause-button button:not(.fuckd)') ||
+                             document.querySelector('ytmusic-player-bar #play-pause-button:not(.fuckd)');
                     if(pb) wirePlayBtn(pb);
                 },5000);
 
                 var tries = 0;
                 var bootIv = setInterval(function(){
                     tries++;
-                    var pb = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
+                    var pb = document.querySelector('ytmusic-player-bar #play-pause-button button:not(.fuckd)') ||
+                             document.querySelector('ytmusic-player-bar #play-pause-button:not(.fuckd)');
                     if(pb){ clearInterval(bootIv); wirePlayBtn(pb); }
                     else if(tries > 100){ clearInterval(bootIv); }
                 },300);

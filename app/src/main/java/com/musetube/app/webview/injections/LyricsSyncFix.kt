@@ -59,8 +59,8 @@ object LyricsSyncFix {
                     if (visibleEl(all[i])) visible.push(all[i]);
                 }
                 if (!visible.length) return null;
-                var pt = (typeof window.splPlayerTop === 'function')
-                    ? window.splPlayerTop()
+                var pt = (typeof window.mtbPlayerTop === 'function')
+                    ? window.mtbPlayerTop()
                     : (document.documentElement.clientHeight || window.innerHeight || 600);
                 var best = null, bestDist = Infinity;
                 for (var i = 0; i < visible.length; i++){
@@ -72,11 +72,11 @@ object LyricsSyncFix {
             }
 
             function place(btn){
-                var vh = (typeof window.splViewH === 'function')
-                    ? window.splViewH()
+                var vh = (typeof window.mtbViewH === 'function')
+                    ? window.mtbViewH()
                     : (document.documentElement.clientHeight || window.innerHeight || 600);
-                var pt = (typeof window.splPlayerTop === 'function')
-                    ? window.splPlayerTop()
+                var pt = (typeof window.mtbPlayerTop === 'function')
+                    ? window.mtbPlayerTop()
                     : vh;
                 var above = Math.max(10, vh - pt) + GAP;
                 var roof = vh - 56;

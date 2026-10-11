@@ -261,8 +261,6 @@ class MusicWebViewClient(
             append(YtmTrackObserver.CONTENT)
             append(ClassicBridge.CONTENT)
             append(MediaUpdater.CONTENT)
-            append(LibraryFetcher.CONTENT)
-            append(LibraryParser.CONTENT)
             append(PlaybackControls.CONTENT)
             append(YtmAuto.CONTENT)
             append(MainLoop.CONTENT)
@@ -276,11 +274,16 @@ class MusicWebViewClient(
                 (function(){
                     var recAcc=function(){
                         try{
-                            var uw=document.querySelector('[data-testid="user-widget-link"]');
-                            if(uw){
-                                var txt=(uw.textContent||'').split('\n')[0].trim();
-                                if(txt) AndBridge.recAccountName(txt);
+                            var av=document.querySelector('ytmusic-nav-bar #avatar-btn');
+                            var txt='';
+                            if(av){
+                                txt=(av.getAttribute('aria-label')||'').trim();
+                                if(!txt){
+                                    var img=av.querySelector('img');
+                                    if(img) txt=(img.getAttribute('alt')||'').trim();
+                                }
                             }
+                            if(txt) AndBridge.recAccountName(txt);
                         }catch(e){}
                     };
                     setTimeout(recAcc,5000);
@@ -304,7 +307,7 @@ class MusicWebViewClient(
                 buildCustomCssJs(customCss) + "\n" +
                 LyricsTheme.buildLyricsStyleJs(lyricsStyle)
         if (playerMode == "original") {
-            view.evaluateJavascript(cleanJs + "\n(function(){var s=document.createElement('style');s.id='mtb-np-show';s.textContent='aside[data-testid=\"now-playing-bar\"]{display:flex!important}';document.head.appendChild(s);})();", null)
+            view.evaluateJavascript(cleanJs + "\n(function(){var s=document.createElement('style');s.id='mtb-np-show';s.textContent='ytmusic-player-bar{display:flex!important}';document.head.appendChild(s);})();", null)
         } else {
             view.evaluateJavascript(cleanJs, null)
         }
@@ -374,7 +377,7 @@ class MusicWebViewClient(
                     if(pl) pl.style.display='none';
                     var s=document.createElement('style');
                     s.id='mtb-np-show';
-                    s.textContent='aside[data-testid="now-playing-bar"]{display:flex!important}';
+                    s.textContent='ytmusic-player-bar{display:flex!important}';
                     document.head.appendChild(s);
                 })();
             """.trimIndent()
@@ -385,7 +388,7 @@ class MusicWebViewClient(
                 (function(){
                     var s=document.getElementById('mtb-np-show');
                     if(s) s.remove();
-                    var npb=document.querySelector('aside[data-testid="now-playing-bar"]');
+                    var npb=document.querySelector('ytmusic-player-bar');
                     if(npb) npb.style.display='none';
                     var pl=document.getElementById('musetubePlayerControls');
                     if(pl){pl.style.display='flex';}

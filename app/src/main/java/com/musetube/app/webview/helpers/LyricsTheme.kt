@@ -9,7 +9,7 @@ import org.json.JSONObject
  * NOT touch 'musetube-custom-css' (owned by the CustomCss setting), so the
  * two features can coexist without clobbering each other.
  *
- * Style "default" removes the element entirely - Spotify renders untouched.
+ * Style "default" removes the element entirely - YTM renders untouched.
  * Every other style shares the background-seam fix (the old one-screen blue
  * layer hidden, full-height lyric chain painted with
  * --lyrics-color-background) so the album color flows to the bottom in all
@@ -20,7 +20,7 @@ object LyricsTheme {
 
     /** (prefValue, settingsLabel) - feeds SingleChoiceDialog directly. */
     val STYLE_OPTIONS: List<Pair<String, String>> = listOf(
-        "default" to "Spotify Default",
+        "default" to "YouTube Music Default",
         "fullscreen" to "Fullscreen (Album Colors)",
         "compact" to "Compact",
         "karaoke" to "Karaoke",

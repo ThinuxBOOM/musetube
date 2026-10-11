@@ -10,19 +10,12 @@ object AutoFeatures {
                 if(afint) clearInterval(afint);
                 afint = setInterval(function(){
                     if(window.closeNpPref) closeNowPlay();
-                    var ft = document.querySelector('aside div.encore-bright-accent-set button');
-                    if(ft && window.__mtbTakeControl) {
-                        ft.click();
-                        setTimeout(function(){
-                            var cb = document.querySelector('aside ul[role=list] li[role=listitem] div[role=button]');
-                            if(cb) cb.click();
-                        },500);
-                    }
                     if(window.autoPlayMode==='permanent' && 'pBtn' in window && !reqPause && !ulFlag && pBtn.getAttribute('aria-label')==='Play') {
                         pBtn.click();
                     }
                     if(window.autoPlayMode==='onetime' && !window.__mtbApDone && !window.__mtbApActive && 'pBtn' in window && !reqPause && pBtn.getAttribute('aria-label')==='Play') {
-                        if(typeof splAutoPlay === 'function') splAutoPlay();
+                        pBtn.click();
+                        window.__mtbApActive = true;
                     }
                 },5000);
             };

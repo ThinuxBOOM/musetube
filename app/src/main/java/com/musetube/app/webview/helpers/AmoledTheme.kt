@@ -6,7 +6,7 @@ fun buildAmoledJs(enabled: Boolean): String {
             (function(){
                 var aled = document.getElementById('musetube-amoled-theme') || document.createElement('style');
                 aled.id = 'musetube-amoled-theme';
-                aled.textContent = '.encore-dark-theme{--background-base:#000;--background-highlight:#000;--background-elevated-base:#000;--background-elevated-highlight:#000;--background-elevated-press:#000;--background-tinted-base:#000} aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}';
+                aled.textContent = 'ytmusic-app{background:#000!important} ytmusic-player-bar{background:#000!important;box-shadow:none;border-top:1px solid #666} ytmusic-nav-bar{background:#000!important}';
                 if (!aled.parentNode) (document.head || document.documentElement).appendChild(aled);
             })();
         """.trimIndent()

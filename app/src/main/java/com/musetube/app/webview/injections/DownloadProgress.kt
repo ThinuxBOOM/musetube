@@ -3,7 +3,7 @@ package com.musetube.app.webview.injections
 object DownloadProgress {
     const val CONTENT = """
         (function () {
-            var ACCENT = 'var(--mtb-accent,#1DB954)';
+            var ACCENT = 'var(--mtb-accent,#FF0000)';
             var ERROR_BG = '#e57373';
             var BOX_CSS = 'background:rgba(24,24,24,0.97);border:1px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:8px 12px;opacity:0;transition:opacity 0.22s ease,transform 0.22s ease;pointer-events:none;display:none;';
         

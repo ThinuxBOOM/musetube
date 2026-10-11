@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. Material 3 + Spotify -->
+    <!-- Base application theme. Material 3 + YouTube Music -->
     <style name="Theme.MuseTube" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Material 3 Primary -->
         <item name="colorPrimary">@color/primary</item>
