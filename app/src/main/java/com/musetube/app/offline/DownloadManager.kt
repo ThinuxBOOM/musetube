@@ -8,6 +8,8 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import com.musetube.app.innertube.YouTube
+import com.musetube.app.innertube.models.Album
+import com.musetube.app.innertube.models.Artist
 import com.musetube.app.innertube.models.SongItem
 import com.musetube.app.yt.AudioQuality
 import com.musetube.app.yt.CandidateScorer
@@ -68,8 +70,9 @@ private sealed class DownloadJob {
 }
 
 object DownloadManager {
-    private const val TAG = "Spl-DL"
+    private const val TAG = "Mtb-DL"
     private const val BATCH_INTER_TRACK_DELAY_MS = 300L
+    private val VIDEO_ID_RE = Regex("^[A-Za-z0-9_-]{11}$")
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -495,6 +498,47 @@ object DownloadManager {
         artist: String,
         album: String,
     ): ResolvedStream? {
+        // YTM fast path: download payloads from the WebView already carry the
+        // exact 11-char videoId — resolve it directly instead of text search.
+        if (VIDEO_ID_RE.matches(trackId)) {
+            Log.d(TAG, "resolveStream: id=$trackId direct videoId resolve")
+            val connectivityManager =
+                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val playback = runCatching {
+                YTPlayerUtils.playerResponseForPlayback(
+                    videoId = trackId,
+                    playlistId = null,
+                    audioQuality = AudioQuality.HIGH,
+                    connectivityManager = connectivityManager,
+                    skipValidation = true,
+                ).getOrNull()
+            }.onFailure { Log.e(TAG, "resolveStream: direct resolve failed: ${it.message}", it) }
+                .getOrNull()
+            val streamUrl = playback?.streamUrl
+            if (streamUrl != null) {
+                val details = playback.videoDetails
+                val thumb = details?.thumbnail?.thumbnails?.lastOrNull()?.url
+                val directArtist = details?.author?.takeIf { it.isNotBlank() }
+                    ?: artist.takeIf { it.isNotBlank() }
+                val chosen = SongItem(
+                    id = trackId,
+                    title = details?.title?.takeIf { it.isNotBlank() }
+                        ?: title.ifBlank { trackId },
+                    artists = listOfNotNull(
+                        directArtist?.let {
+                            Artist(name = it, id = details?.channelId)
+                        },
+                    ),
+                    album = album.takeIf { it.isNotBlank() }?.let { Album(name = it, id = "") },
+                    thumbnail = thumb ?: "",
+                    duration = details?.lengthSeconds?.toIntOrNull(),
+                )
+                Log.d(TAG, "resolveStream: direct '${chosen.title}' (videoId=$trackId)")
+                return ResolvedStream(streamUrl, chosen)
+            }
+            Log.w(TAG, "resolveStream: direct resolve failed for $trackId, falling back to search")
+        }
+
         val searchText = buildString {
             append(title)
             if (artist.isNotBlank()) append(" $artist")

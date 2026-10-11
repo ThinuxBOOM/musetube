@@ -407,14 +407,14 @@ class MainActivity : ComponentActivity() {
                             }
 
                             bridge.onDownloadTrack = { payload ->
-                                Log.d("Spl-DL", "bridge.onDownloadTrack: payload=$payload")
+                                Log.d("Mtb-DL", "bridge.onDownloadTrack: payload=$payload")
                                 wireDownloadCallbacks()
                                 startDownloadService()
                                 DownloadManager.downloadCurrentTrack(this@MainActivity, payload)
                             }
 
                             bridge.onDownloadCollection = { payload ->
-                                Log.d("Spl-DL", "bridge.onDownloadCollection: payload=${payload.take(300)}")
+                                Log.d("Mtb-DL", "bridge.onDownloadCollection: payload=${payload.take(300)}")
                                 wireDownloadCallbacks()
                                 startDownloadService()
                                 DownloadManager.downloadCollection(this@MainActivity, payload)

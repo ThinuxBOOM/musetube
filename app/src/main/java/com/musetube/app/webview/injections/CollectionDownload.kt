@@ -1,292 +1,240 @@
 package com.musetube.app.webview.injections
 
+/*
+ * YTM collection download (rewritten from the Spotify tracklist-row version).
+ *
+ * Same pipeline, YTM selectors:
+ * - Pages: /playlist?list= (incl. list=LM liked), /browse/MPRE albums,
+ *   /channel/UC artists. Rows are ytmusic-responsive-list-item-renderer;
+ *   the videoId comes from the row's watch?v= link.
+ * - Virtualized shelves lazy-load on scroll: loadAll() scrolls the page
+ *   until the row count stabilizes (same stable-count pattern as before).
+ * - Native Download buttons can't be reliably hijacked on YTM (no stable
+ *   download affordance on free), so this adds its own fixed-position
+ *   download-all button on collection pages, plus the skip/cancel cluster
+ *   (same mtb-dl-skip-btn / mtb-dl-cancel-btn ids DownloadProgress drives).
+ * - Payload keeps the {type,name,cover,tracks[]} shape; each track keeps
+ *   {trackId,title,artist,album,cover} with trackId = videoId.
+ *
+ * Row-shape assumptions are best-effort until re-checked signed-in.
+ */
+
 object CollectionDownload {
     const val CONTENT = """
         (function(){
             if (window.__mtbColDlInit) return;
             window.__mtbColDlInit = true;
-        
+
+            var SVG_DL = '<svg viewBox="0 0 16 16" width="24" height="24"><path fill="currentColor" d="M8 1a1 1 0 0 1 1 1v6.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L7 8.586V2a1 1 0 0 1 1-1zM2 13a1 1 0 0 1 1-1h10a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1z"/></svg>';
             var SVG_SKIP = '<svg viewBox="0 0 16 16" width="24" height="24"><path fill="currentColor" d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7h1.6z"/></svg>';
             var SVG_X = '<svg viewBox="0 0 16 16" width="24" height="24"><path fill="currentColor" d="M2.47 2.47a.75.75 0 0 1 1.06 0L8 6.94l4.47-4.47a.75.75 0 1 1 1.06 1.06L9.06 8l4.47 4.47a.75.75 0 1 1-1.06 1.06L8 9.06l-4.47 4.47a.75.75 0 0 1-1.06-1.06L6.94 8 2.47 3.53a.75.75 0 0 1 0-1.06z"/></svg>';
-        
-            var DL_LABELS = ['download','unduh','télécharger','descargar','herunterladen','scaricare','baixar','pobierz','загрузить','ダウンロード','다운로드','下载','下載'];
-            var CIRCLE_HEAD = 'M12 3a9 9 0';
-            var ARROW_HEAD = 'M12 6.05';
-        
-            var ROW_SEL = 'div[data-testid="tracklist-row"]';
-            var RECO_SEL = '.playlistRecommenderContainer, [data-testid="recommended-track"]';
-            var BAR_SEL = 'div[data-testid="action-bar-row"]';
-            var COVER_RE = /ab67616d0000[0-9a-f]{4}/i;
-        
+
+            var ROW_SEL = 'ytmusic-responsive-list-item-renderer';
+            var VID_RE = /[?&]v=([A-Za-z0-9_-]{11})/;
+
             function pageType(){
-                var p = location.pathname;
-                if (p.indexOf('/playlist/') !== -1) return 'playlist';
-                if (p.indexOf('/album/') !== -1) return 'album';
-                if (p.indexOf('/collection/tracks') !== -1) return 'liked';
+                var href = location.href;
+                var path = location.pathname;
+                if(href.indexOf('list=LM') !== -1) return 'liked';
+                if(path.indexOf('/playlist') !== -1 || href.indexOf('list=') !== -1) return 'playlist';
+                if(path.indexOf('/browse/MPRE') !== -1 || path.indexOf('MPRE') !== -1) return 'album';
+                if(path.indexOf('/channel/') !== -1) return 'artist';
                 return null;
             }
-        
-            function inRecommendations(el){
-                try { return !!(el.closest && el.closest(RECO_SEL)); } catch(e){ return false; }
-            }
-        
-            function mainGrid(){
-                var g = document.querySelector('div[data-testid="playlist-tracklist"]');
-                if (g && !inRecommendations(g)) return g;
-                var grids = document.querySelectorAll('div[role="grid"][aria-rowcount]');
-                for (var i = 0; i < grids.length; i++) {
-                    if (inRecommendations(grids[i])) continue;
-                    var rc = parseInt(grids[i].getAttribute('aria-rowcount') || '0', 10);
-                    if (rc > 0 && grids[i].querySelector(ROW_SEL)) {
-                        return grids[i];
-                    }
+
+            function findScroller(){
+                var el = document.scrollingElement || document.documentElement;
+                if(el && el.scrollHeight > el.clientHeight + 100) return el;
+                var cands = document.querySelectorAll('ytmusic-playlist-shelf-renderer, ytmusic-shelf-renderer, #contents');
+                for(var i=0;i<cands.length;i++){
+                    var c = cands[i];
+                    if(c.scrollHeight > c.clientHeight + 100) return c;
                 }
-                return null;
+                return el;
             }
-        
-            function findScroller(from){
-                var el = from;
-                while (el && el !== document.body) {
-                    if (el.scrollHeight > el.clientHeight + 100) return el;
-                    el = el.parentElement;
-                }
-                return null;
-            }
-        
-            function upCover(url){
-                if (!url) return '';
-                return url.replace(COVER_RE, 'ab67616d0000b273');
-            }
-        
+
             function findCover(){
                 var c = '';
                 try {
                     var og = document.querySelector('meta[property="og:image"]');
-                    if (og) c = og.getAttribute('content') || '';
+                    if(og) c = og.getAttribute('content') || '';
                 } catch(e){}
-                if (!c) {
-                    var els = document.querySelectorAll(
-                        'div[data-testid="cover-art-image"],' +
-                        'div[data-testid="entity-image"],' +
-                        'div[data-testid="entity-image"] img,' +
-                        'section[data-testid="album-page"] img,' +
-                        'section[data-testid="playlist-page"] img'
-                    );
-                    for (var i = 0; i < els.length; i++) {
-                        if (els[i].src) { c = els[i].src; break; }
-                    }
+                if(!c){
+                    try {
+                        var h = document.querySelector('ytmusic-detail-header-renderer img, ytmusic-responsive-header-renderer img');
+                        if(h && h.src) c = h.src;
+                    } catch(e){}
                 }
-                return upCover(c);
+                return c;
             }
-        
+
             function headerName(fallback){
-                var h1 = document.querySelector('main h1');
-                var n = (h1 && h1.textContent || '').trim();
+                var n = '';
+                try {
+                    var h = document.querySelector('ytmusic-detail-header-renderer .title, ytmusic-responsive-header-renderer .title, h2.title');
+                    if(h) n = (h.textContent || '').trim();
+                } catch(e){}
                 return n || fallback;
             }
-        
+
             function loadAll(cb){
-                var tl = mainGrid();
-                if (!tl) { cb(null); return; }
-                var sc = findScroller(tl);
-                var top = sc ? sc.scrollTop : 0;
-                var target = parseInt(tl.getAttribute('aria-rowcount') || '0', 10) || 0;
+                var sc = findScroller();
+                var top = 0;
+                try { top = sc.scrollTop; } catch(e){}
                 var last = -1, stable = 0, iter = 0;
                 var iv = setInterval(function(){
                     iter++;
-                    if (sc) { try { sc.scrollTop = sc.scrollHeight; } catch(e){} }
+                    try {
+                        if(sc.scrollTo) sc.scrollTo(0, sc.scrollHeight);
+                        else sc.scrollTop = sc.scrollHeight;
+                    } catch(e){}
                     try { window.dispatchEvent(new Event('scroll')); } catch(e){}
-                    var c = tl.querySelectorAll(ROW_SEL).length;
-                    if (c === last) stable++; else stable = 0;
+                    var c = document.querySelectorAll(ROW_SEL).length;
+                    if(c === last) stable++; else stable = 0;
                     last = c;
-                    if ((target > 0 && c >= target - 1) || stable >= 5 || iter >= 90) {
+                    if(stable >= 5 || iter >= 90){
                         clearInterval(iv);
-                        if (sc) { try { sc.scrollTop = top; } catch(e){} }
-                        setTimeout(function(){ cb(tl); }, 300);
+                        try {
+                            if(sc.scrollTo) sc.scrollTo(0, top);
+                            else sc.scrollTop = top;
+                        } catch(e){}
+                        setTimeout(function(){ cb(); }, 300);
                     }
                 }, 250);
             }
-        
-            function scrape(albumFallback, grid){
-                var root = grid || document;
-                var rows = root.querySelectorAll(ROW_SEL);
-                var checkReco = !!root.querySelector(RECO_SEL);
-                var seen = {}, out = [];
-                for (var i = 0; i < rows.length; i++) {
-                    var row = rows[i];
-                    if (checkReco && inRecommendations(row)) continue;
-                    var link = row.querySelector('a[data-testid="internal-track-link"]');
-                    if (!link) continue;
-                    var href = link.getAttribute('href') || '';
-                    var id = href.split('/track/')[1];
-                    if (id) id = id.split('?')[0].split('#')[0];
-                    if (!id || seen[id]) continue;
-                    seen[id] = true;
-                    var title = (link.textContent || '').trim();
-                    var arts = [];
-                    var links = row.querySelectorAll('a[href*="/artist/"]');
-                    for (var j = 0; j < links.length; j++) {
-                        var t = (links[j].textContent || '').trim();
-                        if (t) arts.push(t);
+
+            function scrapeRow(row, albumFallback){
+                var id = null;
+                try {
+                    var links = row.querySelectorAll('a[href*="watch?v="]');
+                    for(var i=0;i<links.length;i++){
+                        var m = VID_RE.exec(links[i].getAttribute('href') || '');
+                        if(m){ id = m[1]; break; }
                     }
-                    var al = row.querySelector('a[href*="/album/"]');
-                    var album = albumFallback || (al ? (al.textContent || '').trim() : '');
+                } catch(e){}
+                if(!id) return null;
+                var title = '';
+                try {
+                    var t = row.querySelector('.title-column yt-formatted-string.title, yt-formatted-string.title');
+                    if(t) title = (t.getAttribute('title') || t.textContent || '').trim();
+                } catch(e){}
+                var arts = [];
+                try {
+                    var by = row.querySelectorAll('.second-title a, .byline a, [class*="byline"] a');
+                    for(var j=0;j<by.length;j++){
+                        var nm = (by[j].textContent || '').trim();
+                        if(nm && arts.indexOf(nm) === -1) arts.push(nm);
+                    }
+                    if(!arts.length){
+                        var sub = row.querySelector('.second-title, .subtitle, .byline');
+                        if(sub){
+                            var raw = (sub.textContent || '').split('•')[0].trim();
+                            if(raw) arts.push(raw);
+                        }
+                    }
+                } catch(e){}
+                var cover = '';
+                try {
                     var img = row.querySelector('img');
-                    var cover = (img && img.src) ? upCover(img.src) : '';
-                    out.push({ trackId: id, title: title, artist: arts.join(', '), album: album, cover: cover });
+                    if(img && img.src) cover = img.src;
+                } catch(e){}
+                return { trackId: id, title: title, artist: arts.join(', '), album: albumFallback || '', cover: cover };
+            }
+
+            function scrape(albumFallback){
+                var rows = document.querySelectorAll(ROW_SEL);
+                var seen = {}, out = [];
+                for(var i=0;i<rows.length;i++){
+                    var t = scrapeRow(rows[i], albumFallback);
+                    if(!t || seen[t.trackId]) continue;
+                    seen[t.trackId] = true;
+                    out.push(t);
                 }
                 return out;
             }
-        
+
             function busy(){
                 return !!window.__mtbColBusy;
             }
-        
-            function onNativeDownload(e){
-                e.preventDefault();
-                e.stopPropagation();
-                if (busy()) return;
+
+            function onNativeDownload(){
+                if(busy()) return;
                 window.__mtbColBusy = true;
-                var btn = e.currentTarget;
-                if (btn) btn.classList.add('mtb-ab-busy');
                 var type = pageType();
-                if (!type) { window.__mtbColBusy = false; if (btn) btn.classList.remove('mtb-ab-busy'); return; }
+                if(!type){ window.__mtbColBusy = false; return; }
                 var name = headerName(type === 'liked' ? 'Liked Songs' : 'Collection');
                 var albumFallback = (type === 'album') ? name : '';
                 try {
-                    if (typeof window.mtbDownloadProgress === 'function') {
+                    if(typeof window.mtbDownloadProgress === 'function'){
                         window.mtbDownloadProgress(0, 'Loading tracklist...');
                     }
-                } catch(e2){}
-                loadAll(function(grid){
-                    var tracks = scrape(albumFallback, grid);
+                } catch(e){}
+                loadAll(function(){
+                    var tracks = scrape(albumFallback);
                     window.__mtbColBusy = false;
-                    if (btn) btn.classList.remove('mtb-ab-busy');
-                    if (!tracks.length) {
-                        try { AndBridge.deferMessage('No downloadable tracks found'); } catch(e3){}
+                    if(!tracks.length){
+                        try { AndBridge.deferMessage('No downloadable tracks found'); } catch(e){}
                         return;
                     }
                     var payload = { type: type, name: name, cover: findCover(), tracks: tracks };
                     try {
                         AndBridge.downloadCollection(JSON.stringify(payload));
-                    } catch(e4) {
-                        AndBridge.deferMessage('Download failed');
+                    } catch(e2) {
+                        try { AndBridge.deferMessage('Download failed'); } catch(e3){}
                     }
                 });
             }
-        
-            function isDownloadButton(b){
-                if (b.hasAttribute('aria-haspopup')) return false;
-                var al = (b.getAttribute('aria-label') || '').trim().toLowerCase();
-                if (al && DL_LABELS.indexOf(al) !== -1) return true;
-                var paths = b.querySelectorAll('svg path');
-                if (paths.length >= 2){
-                    var d1 = paths[0].getAttribute('d') || '';
-                    var d2 = paths[1].getAttribute('d') || '';
-                    if (d1.indexOf(CIRCLE_HEAD) === 0 && d2.indexOf(ARROW_HEAD) === 0) return true;
-                }
-                return false;
+
+            function fabStyle(){
+                return 'display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;' +
+                    'background:rgba(24,24,24,.92);border:1px solid rgba(255,255,255,.14);border-radius:50%;' +
+                    'color:#fff;cursor:pointer;margin-left:8px;flex-shrink:0;';
             }
-        
-            function hijack(){
-                if (window.__mtbBg) return;
-                var bars = document.querySelectorAll(BAR_SEL);
-                for (var i = 0; i < bars.length; i++) {
-                    var btns = bars[i].querySelectorAll('button');
-                    for (var j = 0; j < btns.length; j++) {
-                        var b = btns[j];
-                        if (b.__mtbDlHijack) continue;
-                        if (!isDownloadButton(b)) continue;
-                        b.__mtbDlHijack = true;
-                        b.addEventListener('click', onNativeDownload, true);
-                    }
-                }
-            }
-        
-            var hijackPending = false;
-            var obs = new MutationObserver(function(muts){
-                if (window.__mtbBg) return;
-                var dirty = false;
-                for (var i = 0; i < muts.length && !dirty; i++) {
-                    if (muts[i].addedNodes.length > 0) dirty = true;
-                }
-                if (dirty && !hijackPending) {
-                    hijackPending = true;
-                    setTimeout(function(){ hijackPending = false; hijack(); }, 150);
-                }
-            });
-            function startObserver(){
-                try { obs.observe(document.body, { childList: true, subtree: true }); } catch(e){}
-            }
-            if (document.body) startObserver();
-            else document.addEventListener('DOMContentLoaded', startObserver);
-        
-            function makeBtn(id, label, svg, handler){
-                var b = document.createElement('button');
-                b.id = id;
-                b.type = 'button';
-                b.title = label;
-                b.setAttribute('aria-label', label);
-                b.innerHTML = svg;
-                b.style.display = 'none';
-                b.addEventListener('click', function(e){
-                    e.stopPropagation();
-                    try { handler(); } catch(err){}
-                });
-                return b;
-            }
-        
+
             function ensureButtons(){
                 var type = pageType();
-                if (!type) return;
-                var bar = document.querySelector(BAR_SEL);
-                if (!bar) return;
-                if (type === 'playlist' && !document.getElementById('mtb-dl-skip-btn')) {
-                    bar.appendChild(makeBtn('mtb-dl-skip-btn', 'Skip current download', SVG_SKIP, function(){
-                        AndBridge.skipDownload();
-                    }));
+                var dl = document.getElementById('mtb-dl-all-btn');
+                if(type && !dl){
+                    var host = document.querySelector('ytmusic-detail-header-renderer, ytmusic-responsive-header-renderer, ytmusic-player-bar');
+                    if(host){
+                        var b = document.createElement('button');
+                        b.id = 'mtb-dl-all-btn';
+                        b.type = 'button';
+                        b.title = 'Download all';
+                        b.setAttribute('aria-label', 'Download all tracks');
+                        b.style.cssText = fabStyle();
+                        b.innerHTML = SVG_DL;
+                        b.addEventListener('click', function(e){ e.stopPropagation(); onNativeDownload(); });
+                        try { host.appendChild(b); } catch(e){}
+                    }
+                } else if(!type && dl){
+                    try { dl.remove(); } catch(e){}
                 }
-                if (!document.getElementById('mtb-dl-cancel-btn')) {
-                    bar.appendChild(makeBtn('mtb-dl-cancel-btn', 'Cancel download', SVG_X, function(){
-                        AndBridge.cancelDownload();
-                    }));
+                var ctl = document.getElementById('mtb-dl-ctl');
+                if(!ctl){
+                    var c = document.createElement('div');
+                    c.id = 'mtb-dl-ctl';
+                    c.style.cssText = 'position:fixed;bottom:92px;right:12px;z-index:2147483647;display:none;';
+                    c.innerHTML = '<button id="mtb-dl-skip-btn" title="Skip current download" aria-label="Skip current download" style="' + fabStyle() + 'margin-left:0;margin-bottom:8px;">' + SVG_SKIP + '</button>' +
+                        '<button id="mtb-dl-cancel-btn" title="Cancel download" aria-label="Cancel download" style="' + fabStyle() + 'margin-left:0;">' + SVG_X + '</button>';
+                    try { document.body.appendChild(c); } catch(e){}
+                    var sk = document.getElementById('mtb-dl-skip-btn');
+                    if(sk) sk.addEventListener('click', function(){ try{ AndBridge.skipDownload(); }catch(e){} });
+                    var ca = document.getElementById('mtb-dl-cancel-btn');
+                    if(ca) ca.addEventListener('click', function(){ try{ AndBridge.cancelDownload(); }catch(e){} });
                 }
             }
-        
+
             function syncButtons(){
                 var act = !!window.__mtbDlActive;
-                var batch = act && !!window.__mtbDlBatch;
-                var sk = document.getElementById('mtb-dl-skip-btn');
-                var ca = document.getElementById('mtb-dl-cancel-btn');
-                if (sk) sk.style.display = batch ? 'inline-flex' : 'none';
-                if (ca) ca.style.display = act ? 'inline-flex' : 'none';
+                var ctl = document.getElementById('mtb-dl-ctl');
+                if(ctl) ctl.style.display = act ? 'block' : 'none';
             }
-        
-            var st = document.createElement('style');
-            st.id = 'mtb-dlall-style';
-            st.textContent = [
-                '#mtb-dl-skip-btn,#mtb-dl-cancel-btn{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;background:transparent;border:none;border-radius:50%;color:#b3b3b3;cursor:pointer;padding:0;margin:0 0 0 4px;flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:color .2s,transform .1s}',
-                '#mtb-dl-skip-btn:hover{color:#fff;transform:scale(1.05)}',
-                '#mtb-dl-cancel-btn:hover{color:#e57373;transform:scale(1.05)}',
-                '#mtb-dl-skip-btn:active,#mtb-dl-cancel-btn:active{transform:scale(.94)}',
-                '#mtb-dl-skip-btn svg,#mtb-dl-cancel-btn svg{width:26px;height:26px;pointer-events:none}',
-                'button.mtb-ab-busy{pointer-events:none;animation:mtbDlAllPulse 1.2s ease-in-out infinite}',
-                '@keyframes mtbDlAllPulse{0%,100%{opacity:.5}50%{opacity:1}}'
-            ].join('');
-            function appendStyle(){
-                var t = document.head || document.documentElement;
-                if (t && !document.getElementById('mtb-dlall-style')) t.appendChild(st);
-            }
-            try { appendStyle(); } catch(e){}
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', appendStyle);
-            }
-        
+
             function tick(){
-                if (window.__mtbBg) return;
-                hijack();
-                ensureButtons();
-                syncButtons();
+                if(window.__mtbBg) return;
+                try { ensureButtons(); } catch(e){}
+                try { syncButtons(); } catch(e){}
             }
             setInterval(tick, 2000);
             tick();

@@ -30,7 +30,7 @@ data class OfflineSong(
 )
 
 object OfflineStore {
-    private const val TAG = "Spl-DL"
+    private const val TAG = "Mtb-DL"
     private const val FOLDER = "MuseTube"
 
     private val TrackIdRegex = Regex("\\[([^\\]]+)\\]\\.[^.]+$")
@@ -232,7 +232,7 @@ object OfflineStore {
     }
 
     /**
-     * TRUE if a track with this Spotify ID is already saved in Music/MuseTube.
+     * TRUE if a track with this YTM videoId is already saved in Music/MuseTube.
      * Used to de-duplicate album/playlist batch downloads. MediaStore is the
      * source of truth on Q+; the folder listing on older devices.
      */
