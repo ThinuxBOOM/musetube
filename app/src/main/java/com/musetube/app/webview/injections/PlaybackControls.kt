@@ -1,71 +1,49 @@
 package com.musetube.app.webview.injections
 
+/*
+ * YTM playback controls (rewritten from the Spotify connect-state version).
+ *
+ * Same window.* entry points so MediaNotificationService / SearchOverlay /
+ * MainLoop callers don't churn: playFromUri(uri, contextUri), actPlayPause,
+ * actSkipBack, actSkipForward, actToggleShuffle, actRepeat, actAddToFav,
+ * actSeek(posMs). All actions drive the ytmusic-player-bar DOM directly;
+ * audio stays in the WebView (v1, no native player).
+ *
+ * playFromUri accepts an 11-char videoId, a ...watch?v=ID URL, or a context
+ * carrying one — anything else is ignored with a dbg line (Spotify URIs from
+ * not-yet-rewritten callers land here safely until Phase 4/6 rewrites them).
+ */
+
 object PlaybackControls {
     const val CONTENT = """
+            window.mtbExtractVideoId = window.mtbExtractVideoId || function(s) {
+                if(!s || typeof s !== 'string') return null;
+                var m = /[?&]v=([A-Za-z0-9_-]{11})/.exec(s);
+                if(m) return m[1];
+                if(/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+                return null;
+            };
             window.playFromUri = function(uri, contextUri) {
-                var playContext = contextUri || uri;
-                var isLikedSongs = (playContext === 'your_library' || playContext.indexOf('collection') !== -1 || playContext === 'playlists' || playContext === 'spotify:collection:tracks');
-
-                var playOptions = {
-                    license: 'tft',
-                    skip_to: {},
-                    player_options_override: {}
-                };
-
-                var commandContext = {
-                    uri: playContext,
-                    url: 'context://' + playContext,
-                    metadata: {}
-                };
-
-                var featIdent = playContext.match(/^spotify:([^:]+)/);
-                featIdent = featIdent ? featIdent[1] : null;
-                if (featIdent == 'user' || isLikedSongs) featIdent = 'your_library';
-
-                if (isLikedSongs) {
-                    var tracks = window.likedSongsCache || [];
-                    var targetUri = (uri && uri.indexOf(':track:') !== -1) ? uri : ((tracks[0] && tracks[0].id) || uri);
-                    var trackList = (tracks || []).map(function(t) { return t.id || t.uri || t; }).filter(Boolean);
-
-                    if (targetUri && targetUri.indexOf(':track:') !== -1 && trackList.indexOf(targetUri) === -1) {
-                        trackList.unshift(targetUri);
-                    }
-
-                    var collectionUri = window.spotUserId ? 'spotify:user:' + window.spotUserId + ':collection' : 'spotify:collection:tracks';
-
-                    commandContext = {
-                        uri: collectionUri,
-                        url: 'context://' + collectionUri,
-                        metadata: { context_description: 'Liked Songs' },
-                        pages: [{ page_url: 'context://' + collectionUri, tracks: trackList.map(function(u) { return { uri: u }; }) }]
-                    };
-
-                    featIdent = 'collection-tracks';
-
-                    playOptions.skip_to = { track_uri: targetUri };
-                } else if (contextUri && contextUri !== uri) {
-                    playOptions.skip_to = { track_uri: uri };
+                var id = window.mtbExtractVideoId(uri) || window.mtbExtractVideoId(contextUri);
+                if(!id) { try{ AndBridge.dbg('w','playFromUri: no videoId in ' + uri); }catch(e){} return; }
+                try{ AndBridge.wakeUp(); }catch(e){}
+                location.href = 'https://music.youtube.com/watch?v=' + id;
+            };
+            window.mtbBarBtn = function(pred) {
+                var bar = document.querySelector('ytmusic-player-bar');
+                if(!bar) return null;
+                var btns = bar.querySelectorAll('yt-icon-button, button');
+                for(var i=0;i<btns.length;i++){
+                    var el = btns[i].querySelector('button') || btns[i];
+                    var lbl = (btns[i].getAttribute('aria-label') || btns[i].getAttribute('title') || '') + ' ' +
+                              (el.getAttribute('aria-label') || el.getAttribute('title') || '');
+                    if(pred(lbl, btns[i])) return el;
                 }
-
-                (window.mngFetch || oriFetch)('https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/' + window.spotDevId + '/to/' + window.spotDevId, {
-                    method: 'POST',
-                    headers: { 'Authorization': window.spotAuthToken, 'Client-Token': window.spotCliToken, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        command: {
-                            context: commandContext,
-                            play_origin: {
-                                feature_identifier: featIdent || 'your_library',
-                                feature_version: featVer,
-                                referrer_identifier: 'your_library'
-                            },
-                            options: playOptions,
-                            endpoint: 'play'
-                        }
-                    })
-                });
+                return null;
             };
             window.actPlayPause = function(play) {
-                var pb = window.pBtn;
+                var pb = document.querySelector('ytmusic-player-bar #play-pause-button button') ||
+                         document.querySelector('ytmusic-player-bar #play-pause-button');
                 if (!pb) return;
                 if (play === null || typeof play === 'undefined') {
                     pb.click();
@@ -76,29 +54,24 @@ object PlaybackControls {
                 }
             };
             window.actSkipBack = function() {
-                var bb = document.querySelector('button[data-testid=control-button-skip-back]');
-                if(bb) { AndBridge.wakeUp(); bb.click(); }
+                var bb = document.querySelector('ytmusic-player-bar .previous-button button') ||
+                         document.querySelector('ytmusic-player-bar .previous-button');
+                if(bb) { try{ AndBridge.wakeUp(); }catch(e){} bb.click(); }
             };
             window.actSkipForward = function() {
-                var fb = document.querySelector('button[data-testid=control-button-skip-forward]');
-                if(fb) { AndBridge.wakeUp(); fb.click(); }
+                var fb = document.querySelector('ytmusic-player-bar .next-button button') ||
+                         document.querySelector('ytmusic-player-bar .next-button');
+                if(fb) { try{ AndBridge.wakeUp(); }catch(e){} fb.click(); }
             };
             window.actToggleShuffle = function() {
-                var sb = document.querySelector('button[data-testid="control-button-shuffle"]');
-                if(!sb) {
-                    var allb=document.querySelectorAll('button');
-                    for(var i=0;i<allb.length;i++){
-                        var sbal=allb[i].getAttribute('aria-label')||'';
-                        if(/shuffle/i.test(sbal)&&!/mtb-btn/.test(allb[i].className||'')){ sb=allb[i]; break; }
-                    }
-                }
-                if(sb && sb.getAttribute('aria-disabled')!=='true') {
-                    AndBridge.wakeUp();
+                var sb = window.mtbBarBtn(function(lbl){ return /shuffle/i.test(lbl); });
+                if(sb) {
+                    try{ AndBridge.wakeUp(); }catch(e){}
                     sb.click();
                 }
             };
             window.actRepeat = function() {
-                var rb = document.querySelector('button[data-testid=control-button-repeat]');
+                var rb = window.mtbBarBtn(function(lbl){ return /^repeat/i.test(lbl.trim()); });
                 if(rb) {
                     if(repmode=='false') repmode='true';
                     else if(repmode=='true') repmode='mixed';
@@ -108,33 +81,26 @@ object PlaybackControls {
                 }
             };
             window.actAddToFav = function() {
-                var fb = document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');
+                var fb = document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer#like-button-renderer #button-shape-like') ||
+                         document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer#like-button-renderer');
                 if(fb) {
-                    if(fb.getAttribute('aria-checked')==='false') {
-                        fb.click();
-                        isfav=true;
-                        updMedia();
-                    } else {
-                        AndBridge.wakeUp();
-                        fb.click();
-                        var rfint = setInterval(function(){
-                            var fr = document.querySelector('#context-menu button[role=menuitemcheckbox][aria-checked=true]');
-                            if(fr) {
-                                clearInterval(rfint);
-                                fr.click();
-                                setTimeout(function(){
-                                    var sb = document.querySelector('#context-menu button[type=submit]');
-                                    if(sb) { sb.click(); isfav=false; updMedia(); }
-                                    AndBridge.wakeOff();
-                                },500);
-                            }
-                        },1000);
-                    }
+                    isfav = !isfav;
+                    updMedia();
+                    fb.click();
                 }
             };
             window.actSeek = function(pos) {
-                var rg = document.querySelector('div[data-testid=playback-progressbar] input[type=range]');
-                if(rg) { rg.value=pos+1; rg.dispatchEvent(new Event('change',{bubbles:true})); }
+                var v = document.querySelector('ytmusic-player video');
+                if(v && isFinite(v.duration)) {
+                    v.currentTime = Math.min(Math.max(0, pos/1000), v.duration);
+                    position = Math.round(v.currentTime*1000);
+                    return;
+                }
+                var rg = document.querySelector('ytmusic-player-bar tp-yt-paper-slider#progress-bar');
+                if(rg) {
+                    rg.setAttribute('value', String(pos));
+                    rg.dispatchEvent(new Event('change',{bubbles:true}));
+                }
             };
         
     """

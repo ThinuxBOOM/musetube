@@ -390,8 +390,11 @@ class MediaNotificationService : MediaBrowserServiceCompat() {
             result.sendResult(items)
             return
         }
-        if (parentId.startsWith("spotify:") || parentId == "your_library" ||
-            parentId.contains("collection")
+        // YTM media ids: FE* browse ids (FEmusic_*), VL* playlist ids, or a raw
+        // 11-char videoId. (Phase 4's YtmAuto produces these.)
+        if (parentId.startsWith("FEmusic_") || parentId.startsWith("FE") ||
+            parentId.startsWith("VL") ||
+            parentId.matches(Regex("[A-Za-z0-9_-]{11}"))
         ) {
             lastActiveContextId = parentId
         }

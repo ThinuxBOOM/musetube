@@ -259,7 +259,7 @@ class MusicWebViewClient(
                 append("\n")
             }
             append(PlayerCore.CONTENT)
-            append(TrackObserver.CONTENT)
+            append(YtmTrackObserver.CONTENT)
             append(ClassicBridge.CONTENT)
             append(MediaUpdater.CONTENT)
             append(LibraryFetcher.CONTENT)
@@ -268,7 +268,6 @@ class MusicWebViewClient(
             append(AndroidAuto.CONTENT)
             append(MainLoop.CONTENT)
             append(AutoFeatures.CONTENT)
-            append(AndroidTracker.CONTENT)
             append(SearchOverlay.CONTENT)
             append(DownloadButton.CONTENT)
             append(DownloadProgress.CONTENT)

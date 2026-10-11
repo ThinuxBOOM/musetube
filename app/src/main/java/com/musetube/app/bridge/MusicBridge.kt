@@ -252,9 +252,9 @@ class MusicBridge(activityRef: WeakReference<Activity>) {
                 setRequestProperty("sec-ch-ua-platform", "\"Windows\"")
                 setRequestProperty("sec-ch-ua-mobile", "?0")
                 setRequestProperty("sec-ch-ua", "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"")
-                if (url.contains("spclient.spotify.com") || url.contains("scdn.co") || url.contains("spotify.com")) {
-                    setRequestProperty("Origin", "https://open.spotify.com")
-                    setRequestProperty("Referer", "https://open.spotify.com/")
+                if (url.contains("music.youtube.com") || url.contains("youtube.com") || url.contains("googlevideo.com")) {
+                    setRequestProperty("Origin", "https://music.youtube.com")
+                    setRequestProperty("Referer", "https://music.youtube.com/")
                 }
                 val cookie = CookieManager.getInstance().getCookie(url)
                 if (!cookie.isNullOrEmpty()) setRequestProperty("Cookie", cookie)
@@ -278,7 +278,7 @@ class MusicBridge(activityRef: WeakReference<Activity>) {
             if (sawSetCookie) CookieManager.getInstance().flush()
 
             val stream = if (code >= 400) conn.errorStream else conn.inputStream
-            // Cap bodies at 2 MiB: nFetch serves small Spotify JSON; an uncapped
+            // Cap bodies at 2 MiB: nFetch serves small YTM JSON; an uncapped
             // readBytes() lets one huge response OOM the JavaBridge thread.
             val responseBody = stream?.use { input ->
                 val out = java.io.ByteArrayOutputStream()

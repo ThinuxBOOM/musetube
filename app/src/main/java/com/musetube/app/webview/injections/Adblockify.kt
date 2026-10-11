@@ -271,7 +271,7 @@ object Adblockify {
 
             function isAdPlaying(){
                 try {
-                    var uri = window.splTrackUri || window.__curTrackUri || '';
+                    var uri = window.mtbTrackUri || window.__curTrackUri || '';
                     if (uri && (uri.indexOf('spotify:ad:') === 0 || uri.indexOf('spotify:advertisement') === 0)) return true;
                 } catch(e){}
                 try {
